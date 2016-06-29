@@ -1,0 +1,127 @@
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/info$
+  response:
+    file: bosh_info.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/deployments$
+  response:
+    file: bosh_deployments_list.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/stemcells$
+  response:
+    file: bosh_stemcells_list.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/tasks$
+    query:
+      limit: 20
+      verbose: 0
+  response:
+    file: bosh_tasks_list.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/deployments/([^\/]+)/vms$
+    query:
+      format: full
+  response:
+    status: 202
+    headers:
+      content-type: application/json
+    body: |
+      {"location": "http://localhost:8000/bosh/<% url[1] %>/tasks/1"}
+
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/tasks/1$ # vms
+  response:
+    headers:
+      content-type: application/json
+    body: |
+      {"id":1,"state":"done","description":"retrieve vm-stats",
+      "timestamp":1428843519,"result":"","user":"admin"}
+
+- request:
+    method: [GET]
+    url: ^/bosh/([^\/]+)/tasks/1/output$
+    query:
+      type: result
+  response:
+    file: bosh_tasks_output_vms.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [GET]
+    url: ^/dozer/directors$
+  response:
+    file: dozer_directors_list.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [POST]
+    url: ^/dozer/directors$
+  response:
+    file: dozer_directors_create.json
+    headers:
+      content-type: application/json
+
+- request:
+    method: [DELETE]
+    url: ^/dozer/directors/00000000-0000-0000-0000-00000000000([^\/]+)$    
+  response:
+    code: 200
+
+- request:
+    method: [GET]
+    url: ^/dozer/directors/00000000-0000-0000-0000-00000000000([^\/]+)$
+  response:
+    - file: dozer_directors_show_building_<% url[1] %>.json
+      headers:
+        content-type: application/json
+    - file: dozer_directors_show_building_<% url[1] %>.json
+      headers:
+        content-type: application/json
+    - file: dozer_directors_show_staging_<% url[1] %>.json
+      latency: 1000
+      headers:
+        content-type: application/json
+    - file: dozer_directors_show_staging_<% url[1] %>.json
+      latency: 1000
+      headers:
+        content-type: application/json
+    - file: dozer_directors_show_staging_<% url[1] %>.json
+      latency: 1000
+      headers:
+        content-type: application/json
+    - file: dozer_directors_show_running_<% url[1] %>.json
+      headers:
+        content-type: application/json
+
+- request:
+    method: [GET]
+    url: ^/login/authorize$
+    query:
+      redirect_uri: "(.+)"
+      client_id: dozer-web
+      response_type: token
+  response:
+    status: 302
+    headers:
+      content-type: application/json
+      location: '<% query.redirect_uri[0] %>/#access_token=deadbeef&token_type=bearer&expires_in=43199&jti=deadbeef'

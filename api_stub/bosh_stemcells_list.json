@@ -1,0 +1,18 @@
+[
+    {
+        "name": "bosh-warden-boshlite-ubuntu-trusty-go_agent",
+        "version": "389",
+        "cid": "ca947788-f54a-41c9-582a-49809f9cd4d8",
+        "deployments": [{"name": "cf-warden"}]
+    },{
+        "name": "bosh-warden-boshlite-ubuntu-trusty-go_agent",
+        "version": "390",
+        "cid": "ca947788-f54a-41c9-582a-49809f9cd4d9",
+        "deployments": []
+    },{
+        "name": "bosh-warden-boshlite-ubuntu-lucid-go_agent",
+        "version": "60",
+        "cid": "ca947788-f54a-41c9-582a-49809f9cd410",
+        "deployments": [{"name": "cf-warden"}]
+    }
+]

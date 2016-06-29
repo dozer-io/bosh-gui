@@ -1,0 +1,12 @@
+{
+    "name":"Dozer Director",
+    "uuid":"cf8dc1fc-9c42-4ffc-96f1-fbad983a6ce6",
+    "version":"1.2749.0 (00000000)",
+    "user":"admin",
+    "cpi":"aws",
+    "features":{
+        "dns":{"status":false,"extras":{"domain_name":"bosh"}},
+        "compiled_package_cache":{"status":true,"extras":{"provider":"local"}},
+        "snapshots":{"status":true}
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "dozer-elm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.hmtl",
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "gulp-stubby-server": "^0.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ruben Koster",
+  "license": "ISC"
+}
