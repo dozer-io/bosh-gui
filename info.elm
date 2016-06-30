@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Html.App as App
 import Html exposing (..)
+import Html.Attributes exposing (..)
 import Http
 import Task
 import Platform.Cmd exposing (Cmd)
@@ -84,7 +85,15 @@ type alias Mdl =
 view : Model -> Html Msg
 view model =
     div []
-        [ h2 [] [ text model.info.name ] ]
+        [ ul [ attribute "class" "mdl-list" ]
+            [ li [ attribute "class" "mdl-list__item" ]
+                [ text ("Name: " ++ model.info.name) ]
+            ]
+        , ul [ attribute "class" "mdl-list" ]
+            [ li [ attribute "class" "mdl-list__item" ]
+                []
+            ]
+        ]
 
 
 
