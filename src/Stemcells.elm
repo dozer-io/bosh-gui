@@ -1,14 +1,14 @@
 module Main exposing (..)
 
-import Html.App as App
 import Html exposing (..)
+import Html.App as App
 import Html.Attributes exposing (..)
-import List exposing (map)
 import Http
-import Task
-import Platform.Cmd exposing (Cmd)
 import Json.Decode exposing (..)
+import List exposing (map)
 import Material
+import Platform.Cmd exposing (Cmd)
+import Task
 
 
 -- import Material.Scheme
@@ -44,7 +44,7 @@ type alias Stemcell =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [] Material.model, getStemcells )
+    ( Model [] Material.model, fetchStemcells )
 
 
 
@@ -62,7 +62,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         FetchStemcells ->
-            ( model, getStemcells )
+            ( model, fetchStemcells )
 
         FetchSucceed stemcells ->
             ( { model | stemcells = stemcells }, Cmd.none )
@@ -108,8 +108,8 @@ subscriptions model =
 -- HTTP
 
 
-getStemcells : Cmd Msg
-getStemcells =
+fetchStemcells : Cmd Msg
+fetchStemcells =
     let
         url =
             "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/stemcells"
