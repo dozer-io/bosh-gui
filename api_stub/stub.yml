@@ -43,7 +43,7 @@
     headers:
       content-type: application/json
     body: |
-      {"location": "http://localhost:8000/bosh/<% url[1] %>/tasks/1"}
+      {"location": "http://localhost:8001/bosh/<% url[1] %>/tasks/1"}
 
 - request:
     method: [GET]

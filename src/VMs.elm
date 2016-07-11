@@ -6,8 +6,8 @@ import Html.App as App
 import Http
 import Json.Decode exposing (..)
 import Platform.Cmd exposing (Cmd)
-import Regex
 import Task
+import String
 import VM
 import List.Extra
 
@@ -57,7 +57,7 @@ type Msg
     | GetTaskResultFail Http.Error
     | GetVMsTaskSucceed TaskUrl
     | GetTaskStateSucceed String
-    | GetTaskResultSucceed (List VM.VM)
+    | GetTaskResultSucceed String
     | SubMsg Int VM.Msg
 
 
@@ -70,11 +70,11 @@ update msg model =
         GetTaskStateFail _ ->
             ( model, getTaskState model.taskUrl )
 
-        GetTaskResultFail _ ->
+        GetTaskResultFail err ->
             ( model, getTaskResult model.taskUrl )
 
         GetVMsTaskSucceed taskUrl ->
-            ( { model | taskUrl = taskUrl }, Cmd.none )
+            ( { model | taskUrl = taskUrl }, getTaskState taskUrl )
 
         GetTaskStateSucceed state ->
             case state of
@@ -93,12 +93,24 @@ update msg model =
                 _ ->
                     ( model, getVMsTask model.deployment )
 
-        GetTaskResultSucceed vms ->
+        GetTaskResultSucceed rawVMs ->
             let
+                vms =
+                    case decodeVMsResult rawVMs of
+                        Err str ->
+                            let
+                                _ =
+                                    Debug.log "TaskDecodingError" str
+                            in
+                                []
+
+                        Ok vms ->
+                            vms
+
                 ( newVMs, cmds ) =
                     List.unzip (List.indexedMap createVM vms)
             in
-                ( { model | vms = newVMs }
+                ( { model | vms = newVMs, loading = False }
                 , Cmd.batch cmds
                 )
 
@@ -150,13 +162,19 @@ view model =
            else
             text ""
           )
-        , text model.taskUrl
+        , div []
+            <| List.indexedMap viewVM model.vms
         ]
 
 
 loading : Html Msg
 loading =
     h1 [] [ text "Loading" ]
+
+
+viewVM : Int -> VM.Model -> Html Msg
+viewVM id model =
+    App.map (SubMsg id) (VM.view model)
 
 
 
@@ -193,10 +211,12 @@ getTaskResult taskUrl =
     let
         url =
             Erl.toString
+                <| Erl.addQuery "type" "result"
                 <| appendPathSegments [ "output" ]
                 <| Erl.parse taskUrl
     in
-        Task.perform GetTaskResultFail GetTaskResultSucceed <| Http.get decodeVMsResult url
+        Task.perform GetTaskResultFail GetTaskResultSucceed
+            <| Http.getString url
 
 
 
@@ -213,18 +233,16 @@ decodeTaskState =
     "state" := string
 
 
-decodeVMsResult : Decoder (List VM.VM)
-decodeVMsResult =
+decodeVMsResult : String -> Result String (List VM.VM)
+decodeVMsResult vms =
     let
         combineResults =
             List.foldr (Result.map2 (::)) (Ok [])
     in
-        customDecoder (string)
-            (\ndjson ->
-                combineResults
-                    <| List.map (decodeString decodeVM)
-                    <| Regex.split Regex.All (Regex.regex "/n") ndjson
-            )
+        combineResults
+            <| List.map (decodeString decodeVM)
+            <| String.lines
+            <| String.dropRight 1 vms
 
 
 decodeVM : Decoder VM.VM
@@ -232,19 +250,3 @@ decodeVM =
     object2 VM.VM
         ("vm_cid" := string)
         ("job_name" := string)
-
-
-
--- decodeDeployments : Decoder (List Deployment)
--- decodeDeployments =
---     Json.Decode.list decodeDeployment
--- decodeDeployment : Decoder Deployment
--- decodeDeployment =
---     "location" := string
--- decodeVMs : Decoder (List VM)
--- decodeVMs =
---     Json.Decode.list decodeVM
--- decodeVM : Decoder VM
--- decodeVM =
---     object1 VM
---         ("name" := string)
