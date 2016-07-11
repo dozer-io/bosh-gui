@@ -1,10 +1,12 @@
 module Main exposing (..)
 
+import Erl exposing (appendPathSegments)
 import Html exposing (..)
 import Html.App as App
 import Http
 import Json.Decode exposing (..)
 import Platform.Cmd exposing (Cmd)
+import Regex
 import Task
 import VM
 
@@ -50,7 +52,11 @@ init =
 
 type Msg
     = GetVMsTaskFail Http.Error
+    | GetTaskStateFail Http.Error
+    | GetTaskResultFail Http.Error
     | GetVMsTaskSucceed TaskUrl
+    | GetTaskStateSucceed String
+    | GetTaskResultSucceed (List VM.VM)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -59,8 +65,34 @@ update msg model =
         GetVMsTaskFail _ ->
             ( model, getVMsTask model.deployment )
 
+        GetTaskStateFail _ ->
+            ( model, getTaskState model.taskUrl )
+
+        GetTaskResultFail _ ->
+            ( model, getTaskResult model.taskUrl )
+
         GetVMsTaskSucceed taskUrl ->
             ( { model | taskUrl = taskUrl }, Cmd.none )
+
+        GetTaskStateSucceed state ->
+            case state of
+                "done" ->
+                    ( model, getTaskResult model.taskUrl )
+
+                "running" ->
+                    ( model, getTaskState model.taskUrl )
+
+                "timeout" ->
+                    ( model, getVMsTask model.deployment )
+
+                "error" ->
+                    ( model, getVMsTask model.deployment )
+
+                _ ->
+                    ( model, getVMsTask model.deployment )
+
+        GetTaskResultSucceed vms ->
+            ( { model | vms = List.map VM.init vms }, Cmd.none )
 
 
 
@@ -108,15 +140,55 @@ getVMsTask deployment =
         Task.perform GetVMsTaskFail GetVMsTaskSucceed <| Http.get decodeVMsTask url
 
 
+getTaskState : TaskUrl -> Cmd Msg
+getTaskState taskUrl =
+    Task.perform GetTaskStateFail GetTaskStateSucceed <| Http.get decodeTaskState taskUrl
 
--- getTaskState : TaskUrl -> Cmd Msg
--- getTaskResult : TaskUrl -> Cmd Msg
+
+getTaskResult : TaskUrl -> Cmd Msg
+getTaskResult taskUrl =
+    let
+        url =
+            Erl.toString
+                <| appendPathSegments [ "output" ]
+                <| Erl.parse taskUrl
+    in
+        Task.perform GetTaskResultFail GetTaskResultSucceed <| Http.get decodeVMsResult url
+
+
+
 -- DECODE
 
 
 decodeVMsTask : Decoder TaskUrl
 decodeVMsTask =
     "location" := string
+
+
+decodeTaskState : Decoder String
+decodeTaskState =
+    "state" := string
+
+
+decodeVMsResult : Decoder (List VM.VM)
+decodeVMsResult =
+    let
+        combineResults =
+            List.foldr (Result.map2 (::)) (Ok [])
+    in
+        customDecoder (string)
+            (\ndjson ->
+                combineResults
+                    <| List.map (decodeString decodeVM)
+                    <| Regex.split Regex.All (Regex.regex "/n") ndjson
+            )
+
+
+decodeVM : Decoder VM.VM
+decodeVM =
+    object2 VM.VM
+        ("vm_cid" := string)
+        ("job_name" := string)
 
 
 
