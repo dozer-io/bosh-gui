@@ -3,17 +3,25 @@ module VM exposing (..)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Platform.Cmd exposing (Cmd)
+import Html.App as App
 
 
--- import Html.App as App
--- main : Program Never
--- main =
---     App.program
---         { init = init
---         , view = view
---         , update = update
---         , subscriptions = subscriptions
---         }
+main : Program Never
+main =
+    App.program
+        { init = init sampleVM
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
+
+
+sampleVM : VM
+sampleVM =
+    VM "fooCid" "nats"
+
+
+
 -- MODEL
 
 
@@ -36,9 +44,9 @@ type alias VM =
     }
 
 
-init : VM -> Model
+init : VM -> ( Model, Cmd Msg )
 init vm =
-    (Model vm False)
+    ( Model vm False, Cmd.none )
 
 
 

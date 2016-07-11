@@ -9,6 +9,7 @@ import Platform.Cmd exposing (Cmd)
 import Regex
 import Task
 import VM
+import List.Extra
 
 
 main : Program Never
@@ -57,6 +58,7 @@ type Msg
     | GetVMsTaskSucceed TaskUrl
     | GetTaskStateSucceed String
     | GetTaskResultSucceed (List VM.VM)
+    | SubMsg Int VM.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,7 +94,48 @@ update msg model =
                     ( model, getVMsTask model.deployment )
 
         GetTaskResultSucceed vms ->
-            ( { model | vms = List.map VM.init vms }, Cmd.none )
+            let
+                ( newVMs, cmds ) =
+                    List.unzip (List.indexedMap createVM vms)
+            in
+                ( { model | vms = newVMs }
+                , Cmd.batch cmds
+                )
+
+        SubMsg id subMsg ->
+            let
+                maybeVM =
+                    List.Extra.getAt id model.vms
+            in
+                case maybeVM of
+                    Nothing ->
+                        ( model, Cmd.none )
+
+                    Just vm ->
+                        let
+                            ( newVM, cmds ) =
+                                VM.update subMsg vm
+
+                            maybeVMs =
+                                List.Extra.setAt id newVM model.vms
+                        in
+                            case maybeVMs of
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                                Just vms ->
+                                    ( { model | vms = vms }
+                                    , Cmd.map (SubMsg id) cmds
+                                    )
+
+
+createVM : Int -> VM.VM -> ( VM.Model, Cmd Msg )
+createVM id vm =
+    let
+        ( newVM, cmds ) =
+            VM.init vm
+    in
+        ( newVM, Cmd.map (SubMsg id) cmds )
 
 
 
