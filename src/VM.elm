@@ -89,7 +89,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ onClick ToggleExpanded ]
-        [ h1 []
+        [ h3 []
             [ text <| "#" ++ (toString model.vm.index) ++ " " ++ model.vm.jobName
             ]
         , p []

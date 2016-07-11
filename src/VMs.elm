@@ -15,7 +15,7 @@ import List.Extra
 main : Program Never
 main =
     App.program
-        { init = init
+        { init = init "cf-warden"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -42,9 +42,9 @@ type alias TaskUrl =
     String
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model "cf-warden" [] True "", getVMsTask "cf-warden" )
+init : Deployment -> ( Model, Cmd Msg )
+init deployment =
+    ( Model deployment [] True "", getVMsTask "cf-warden" )
 
 
 
@@ -157,7 +157,8 @@ createVM id vm =
 view : Model -> Html Msg
 view model =
     div []
-        [ (if model.loading then
+        [ h1 [] [ text model.deployment ]
+        , (if model.loading then
             loading
            else
             text ""
