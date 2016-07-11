@@ -1,4 +1,4 @@
-module Main exposing (..)
+module VMs exposing (..)
 
 import Erl exposing (appendPathSegments)
 import Html exposing (..)
@@ -240,13 +240,6 @@ decodeVMsResult vms =
             List.foldr (Result.map2 (::)) (Ok [])
     in
         combineResults
-            <| List.map (decodeString decodeVM)
+            <| List.map (decodeString VM.decodeVM)
             <| String.lines
             <| String.dropRight 1 vms
-
-
-decodeVM : Decoder VM.VM
-decodeVM =
-    object2 VM.VM
-        ("vm_cid" := string)
-        ("job_name" := string)

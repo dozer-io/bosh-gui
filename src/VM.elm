@@ -4,6 +4,8 @@ import Html exposing (..)
 import Html.Events exposing (onClick)
 import Platform.Cmd exposing (Cmd)
 import Html.App as App
+import Json.Decode exposing (int, string, list, Decoder)
+import Json.Decode.Pipeline exposing (decode, required)
 
 
 main : Program Never
@@ -14,11 +16,6 @@ main =
         , update = update
         , subscriptions = subscriptions
         }
-
-
-sampleVM : VM
-sampleVM =
-    VM "fooCid" "nats"
 
 
 
@@ -32,16 +29,37 @@ type alias Model =
 
 
 type alias VM =
-    { vmCid :
-        String
-        -- , ips : List String
-        -- , agentId : String
-    , jobName :
-        String
-        -- , index : Int
-        -- , jobState : String
-        -- , resourcePool : String
+    { vmCid : String
+    , ips : List String
+    , agentId : String
+    , jobName : String
+    , index : Int
+    , jobState : String
+    , resourcePool : String
     }
+
+
+decodeVM : Decoder VM
+decodeVM =
+    decode VM
+        |> required "vm_cid" string
+        |> required "ips" (list string)
+        |> required "agent_id" string
+        |> required "job_name" string
+        |> required "index" int
+        |> required "job_state" string
+        |> required "resource_pool" string
+
+
+sampleVM : VM
+sampleVM =
+    VM "c1745718-3c3a-425a-a9ab-4233c56d565a"
+        [ "10.0.0.5", "192.168.0.5" ]
+        "c51ed5a6-227e-4ac2-aed8-842b061ae883"
+        "nats"
+        0
+        "running"
+        "default"
 
 
 init : VM -> ( Model, Cmd Msg )
@@ -72,7 +90,7 @@ view : Model -> Html Msg
 view model =
     div [ onClick ToggleExpanded ]
         [ h1 []
-            [ text model.vm.jobName
+            [ text <| "#" ++ (toString model.vm.index) ++ " " ++ model.vm.jobName
             ]
         , p []
             [ text
