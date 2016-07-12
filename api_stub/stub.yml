@@ -11,6 +11,7 @@
     url: ^/bosh/([^\/]+)/deployments$
   response:
     file: bosh_deployments_list.json
+    latency: 1000
     headers:
       content-type: application/json
 
@@ -40,15 +41,17 @@
       format: full
   response:
     status: 202
+    latency: 1000    
     headers:
       content-type: application/json
     body: |
-      {"location": "http://localhost:8000/bosh/<% url[1] %>/tasks/1"}
+      {"location": "http://localhost:8001/bosh/<% url[1] %>/tasks/1"}
 
 - request:
     method: [GET]
     url: ^/bosh/([^\/]+)/tasks/1$ # vms
   response:
+    latency: 1000        
     headers:
       content-type: application/json
     body: |

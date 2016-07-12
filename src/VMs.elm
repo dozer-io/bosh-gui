@@ -1,26 +1,21 @@
-module Main exposing (..)
+module VMs exposing (..)
 
+import Erl exposing (appendPathSegments)
 import Html exposing (..)
 import Html.App as App
-import Html.Attributes exposing (..)
 import Http
 import Json.Decode exposing (..)
-import List exposing (map)
-import Material
 import Platform.Cmd exposing (Cmd)
 import Task
-
-
--- import Task.Extra exposing (parallel)
--- import Material.Scheme
--- import Material.Button as Button
--- import Material.Options exposing (css)
+import String
+import VM
+import List.Extra
 
 
 main : Program Never
 main =
     App.program
-        { init = init
+        { init = init "cf-warden"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -32,9 +27,10 @@ main =
 
 
 type alias Model =
-    { vms : List ( Deployment, List VM )
-    , deployments : List Deployment
-    , mdl : Material.Model
+    { deployment : Deployment
+    , vms : List VM.Model
+    , loading : Bool
+    , taskUrl : TaskUrl
     }
 
 
@@ -42,13 +38,13 @@ type alias Deployment =
     String
 
 
-type alias VM =
-    { name : String }
+type alias TaskUrl =
+    String
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] [] Material.model, fetchDeployments )
+init : Deployment -> ( Model, Cmd Msg )
+init deployment =
+    ( Model deployment [] True "", getVMsTask deployment )
 
 
 
@@ -56,61 +52,126 @@ init =
 
 
 type Msg
-    = FetchVMs
-    | FetchVMsSucceed (List (List VM))
-    | FetchDeploymentsSucceed (List Deployment)
-    | FetchFail Http.Error
-    | MDL Material.Msg
+    = GetVMsTaskFail Http.Error
+    | GetTaskStateFail Http.Error
+    | GetTaskResultFail Http.Error
+    | GetVMsTaskSucceed TaskUrl
+    | GetTaskStateSucceed String
+    | GetTaskResultSucceed String
+    | SubMsg Int VM.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action model =
-    case action of
-        FetchVMs ->
-            ( model, fetchDeployments )
+update msg model =
+    case msg of
+        GetVMsTaskFail _ ->
+            ( model, getVMsTask model.deployment )
 
-        FetchDeploymentsSucceed deployments ->
-            ( { model | deployments = deployments }, fetchVMs deployments )
+        GetTaskStateFail _ ->
+            ( model, getTaskState model.taskUrl )
 
-        FetchVMsSucceed vms ->
-            --            ( { model | vms = (Dict.insert deployment vms model.vms) }, Cmd.none )
-            ( model, Cmd.none )
+        GetTaskResultFail err ->
+            ( model, getTaskResult model.taskUrl )
 
-        FetchFail _ ->
-            ( model, Cmd.none )
+        GetVMsTaskSucceed taskUrl ->
+            ( { model | taskUrl = taskUrl }, getTaskState taskUrl )
 
-        MDL action' ->
-            Material.update MDL action' model
+        GetTaskStateSucceed state ->
+            case state of
+                "done" ->
+                    ( model, getTaskResult model.taskUrl )
+
+                "running" ->
+                    ( model, getTaskState model.taskUrl )
+
+                "timeout" ->
+                    ( model, getVMsTask model.deployment )
+
+                "error" ->
+                    ( model, getVMsTask model.deployment )
+
+                _ ->
+                    ( model, getVMsTask model.deployment )
+
+        GetTaskResultSucceed rawVMs ->
+            let
+                vms =
+                    case decodeVMsResult rawVMs of
+                        Err _ ->
+                            []
+
+                        Ok vms ->
+                            vms
+
+                ( newVMs, cmds ) =
+                    List.unzip (List.indexedMap createVM vms)
+            in
+                ( { model | vms = newVMs, loading = False }
+                , Cmd.batch cmds
+                )
+
+        SubMsg id subMsg ->
+            let
+                maybeVM =
+                    List.Extra.getAt id model.vms
+            in
+                case maybeVM of
+                    Nothing ->
+                        ( model, Cmd.none )
+
+                    Just vm ->
+                        let
+                            ( newVM, cmds ) =
+                                VM.update subMsg vm
+
+                            maybeVMs =
+                                List.Extra.setAt id newVM model.vms
+                        in
+                            case maybeVMs of
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                                Just vms ->
+                                    ( { model | vms = vms }
+                                    , Cmd.map (SubMsg id) cmds
+                                    )
+
+
+createVM : Int -> VM.VM -> ( VM.Model, Cmd Msg )
+createVM id vm =
+    let
+        ( newVM, cmds ) =
+            VM.init vm
+    in
+        ( newVM, Cmd.map (SubMsg id) cmds )
 
 
 
 -- VIEW
 
 
-type alias Mdl =
-    Material.Model
-
-
 view : Model -> Html Msg
 view model =
     div []
-        <| List.map deploymentList model.vms
-
-
-deploymentList : ( String, List VM ) -> Html Msg
-deploymentList namedVMs =
-    div []
-        [ h3 []
-            [ text <| fst namedVMs
-            , ul [ attribute "class" "mdl-list" ]
-                (List.map vmListItem <| snd namedVMs)
-            ]
+        [ h1 [] [ text model.deployment ]
+        , (if model.loading then
+            loading
+           else
+            text ""
+          )
+        , div []
+            <| List.indexedMap viewVM model.vms
         ]
 
 
-vmListItem : VM -> Html Msg
-vmListItem vm =
-    li [ attribute "class" "mdl-list__item" ] [ text ("Name: " ++ vm.name) ]
+loading : Html Msg
+loading =
+    h1 [] [ text "Loading" ]
+
+
+viewVM : Int -> VM.Model -> Html Msg
+viewVM id model =
+    App.map (SubMsg id) (VM.view model)
 
 
 
@@ -126,53 +187,56 @@ subscriptions model =
 -- HTTP
 
 
-fetchDeployments : Cmd Msg
-fetchDeployments =
-    let
-        url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/deployments"
-    in
-        Task.perform FetchFail FetchDeploymentsSucceed <| Http.get decodeDeployments url
-
-
-fetchVMs : List Deployment -> Cmd Msg
-fetchVMs deployemnts =
-    Task.perform FetchFail FetchVMsSucceed <| fetchVMsTasks deployemnts
-
-
-fetchVMsTasks : List String -> Task.Task Http.Error (List (List VM))
-fetchVMsTasks deployments =
-    Task.sequence
-        <| List.map fetchVMsTask deployments
-
-
-fetchVMsTask : String -> Task.Task Http.Error (List VM)
-fetchVMsTask deployment =
+getVMsTask : Deployment -> Cmd Msg
+getVMsTask deployment =
     let
         url =
             "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/deployments/"
                 ++ deployment
                 ++ "/vms?format=full"
     in
-        Http.get decodeVMs url
+        Task.perform GetVMsTaskFail GetVMsTaskSucceed <| Http.get decodeVMsTask url
 
 
-decodeDeployments : Decoder (List Deployment)
-decodeDeployments =
-    Json.Decode.list decodeDeployment
+getTaskState : TaskUrl -> Cmd Msg
+getTaskState taskUrl =
+    Task.perform GetTaskStateFail GetTaskStateSucceed <| Http.get decodeTaskState taskUrl
 
 
-decodeDeployment : Decoder Deployment
-decodeDeployment =
-    "name" := string
+getTaskResult : TaskUrl -> Cmd Msg
+getTaskResult taskUrl =
+    let
+        url =
+            Erl.toString
+                <| Erl.addQuery "type" "result"
+                <| appendPathSegments [ "output" ]
+                <| Erl.parse taskUrl
+    in
+        Task.perform GetTaskResultFail GetTaskResultSucceed
+            <| Http.getString url
 
 
-decodeVMs : Decoder (List VM)
-decodeVMs =
-    Json.Decode.list decodeVM
+
+-- DECODE
 
 
-decodeVM : Decoder VM
-decodeVM =
-    object1 VM
-        ("name" := string)
+decodeVMsTask : Decoder TaskUrl
+decodeVMsTask =
+    "location" := string
+
+
+decodeTaskState : Decoder String
+decodeTaskState =
+    "state" := string
+
+
+decodeVMsResult : String -> Result String (List VM.VM)
+decodeVMsResult vms =
+    let
+        combineResults =
+            List.foldr (Result.map2 (::)) (Ok [])
+    in
+        combineResults
+            <| List.map (decodeString VM.decodeVM)
+            <| String.lines
+            <| String.dropRight 1 vms
