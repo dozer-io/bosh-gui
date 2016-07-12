@@ -30,7 +30,7 @@ type alias Model =
     { deployment : Deployment
     , vms : List VM.Model
     , loading : Bool
-    , taskUrl : String
+    , taskUrl : TaskUrl
     }
 
 
@@ -44,7 +44,7 @@ type alias TaskUrl =
 
 init : Deployment -> ( Model, Cmd Msg )
 init deployment =
-    ( Model deployment [] True "", getVMsTask "cf-warden" )
+    ( Model deployment [] True "", getVMsTask deployment )
 
 
 
@@ -97,12 +97,8 @@ update msg model =
             let
                 vms =
                     case decodeVMsResult rawVMs of
-                        Err str ->
-                            let
-                                _ =
-                                    Debug.log "TaskDecodingError" str
-                            in
-                                []
+                        Err _ ->
+                            []
 
                         Ok vms ->
                             vms
