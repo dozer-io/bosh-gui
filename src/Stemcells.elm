@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Stemcells exposing (..)
 
 import Html exposing (..)
 import Html.App as App
@@ -44,7 +44,7 @@ type alias Stemcell =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [] Material.model, fetchStemcells )
+    ( Model [] Material.model, getStemcells )
 
 
 
@@ -52,22 +52,22 @@ init =
 
 
 type Msg
-    = FetchStemcells
-    | FetchSucceed (List Stemcell)
-    | FetchFail Http.Error
+    = GetStemcells
+    | GetSucceed (List Stemcell)
+    | GetFail Http.Error
     | MDL Material.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
-        FetchStemcells ->
-            ( model, fetchStemcells )
+        GetStemcells ->
+            ( model, getStemcells )
 
-        FetchSucceed stemcells ->
+        GetSucceed stemcells ->
             ( { model | stemcells = stemcells }, Cmd.none )
 
-        FetchFail _ ->
+        GetFail _ ->
             ( model, Cmd.none )
 
         MDL action' ->
@@ -108,14 +108,14 @@ subscriptions model =
 -- HTTP
 
 
-fetchStemcells : Cmd Msg
-fetchStemcells =
+getStemcells : Cmd Msg
+getStemcells =
     let
         url =
             "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/stemcells"
     in
-        Task.perform FetchFail
-            FetchSucceed
+        Task.perform GetFail
+            GetSucceed
             (Http.get decodeStemcells url)
 
 

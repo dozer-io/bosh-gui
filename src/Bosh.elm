@@ -6,6 +6,7 @@ import Html.App as App
 import Material.Tabs as Tabs
 import Material
 import Deployments
+import Stemcells
 
 
 main : Program Never
@@ -30,6 +31,8 @@ type alias Model =
     { mdl : Material.Model
     , tab : Int
     , deployments : Deployments.Model
+    , stemcellsLoaded : Bool
+    , stemcells : Stemcells.Model
     }
 
 
@@ -38,10 +41,15 @@ init =
     let
         ( deployments, cmd ) =
             Deployments.init
+
+        ( stemcells, _ ) =
+            Stemcells.init
     in
         ( { mdl = Material.model
           , tab = 0
           , deployments = deployments
+          , stemcellsLoaded = False
+          , stemcells = stemcells
           }
         , Cmd.map DeploymentsMsg cmd
         )
@@ -55,6 +63,7 @@ type Msg
     = SelectTab Int
     | Mdl Material.Msg
     | DeploymentsMsg Deployments.Msg
+    | StemcellsMsg Stemcells.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,17 +72,19 @@ update msg model =
         SelectTab idx ->
             case idx of
                 0 ->
-                    -- If we don't want to pre-load content we could use somthing like the code below
-                    -- let
-                    --     ( deployments, cmd ) =
-                    --         Deployments.update Deployments.GetDeployments model.deployments
-                    -- in
-                    --     ( { model | tab = idx, deployments = deployments }, Cmd.map DeploymentsMsg cmd
-                    --                        )
                     ( { model | tab = idx }, Cmd.none )
 
                 1 ->
-                    ( { model | tab = idx }, Cmd.none )
+                    if model.stemcellsLoaded then
+                        ( { model | tab = idx }, Cmd.none )
+                    else
+                        let
+                            ( stemcells, cmd ) =
+                                Stemcells.update Stemcells.GetStemcells model.stemcells
+                        in
+                            ( { model | tab = idx, stemcells = stemcells, stemcellsLoaded = True }
+                            , Cmd.map StemcellsMsg cmd
+                            )
 
                 _ ->
                     ( { model | tab = idx }, Cmd.none )
@@ -84,6 +95,13 @@ update msg model =
                     Deployments.update msg model.deployments
             in
                 ( { model | deployments = deployments }, Cmd.map (DeploymentsMsg) cmd )
+
+        StemcellsMsg msg ->
+            let
+                ( stemcells, cmd ) =
+                    Stemcells.update msg model.stemcells
+            in
+                ( { model | stemcells = stemcells }, Cmd.map (StemcellsMsg) cmd )
 
         Mdl msg ->
             Material.update Mdl msg model
@@ -103,15 +121,15 @@ view model =
             , Tabs.onSelectTab SelectTab
             , Tabs.activeTab model.tab
             ]
-            [ Tabs.label [] [ text "VMs" ]
-            , Tabs.textLabel [] "Tab Two"
+            [ Tabs.textLabel [] "VMs"
+            , Tabs.textLabel [] "Stemcells"
             ]
             [ case model.tab of
                 0 ->
                     div [] [ App.map DeploymentsMsg (Deployments.view model.deployments) ]
 
                 1 ->
-                    div [] [ text "Content of tab two" ]
+                    div [] [ App.map StemcellsMsg (Stemcells.view model.stemcells) ]
 
                 _ ->
                     div [] []
