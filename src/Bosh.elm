@@ -5,15 +5,16 @@ import Html exposing (..)
 import Html.App as App
 import Material.Tabs as Tabs
 import Material
+import Deployments
 
 
 main : Program Never
 main =
     App.program
-        { init = ( model, Cmd.none )
+        { init = init
         , view = view
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = always Sub.none
         }
 
 
@@ -28,14 +29,22 @@ type alias Mdl =
 type alias Model =
     { mdl : Material.Model
     , tab : Int
+    , deployments : Deployments.Model
     }
 
 
-model : Model
-model =
-    { mdl = Material.model
-    , tab = 0
-    }
+init : ( Model, Cmd Msg )
+init =
+    let
+        ( deployments, cmd ) =
+            Deployments.init
+    in
+        ( { mdl = Material.model
+          , tab = 0
+          , deployments = deployments
+          }
+        , Cmd.map DeploymentsMsg cmd
+        )
 
 
 
@@ -45,13 +54,36 @@ model =
 type Msg
     = SelectTab Int
     | Mdl Material.Msg
+    | DeploymentsMsg Deployments.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SelectTab idx ->
-            ( { model | tab = idx }, Cmd.none )
+            case idx of
+                0 ->
+                    -- If we don't want to pre-load content we could use somthing like the code below
+                    -- let
+                    --     ( deployments, cmd ) =
+                    --         Deployments.update Deployments.GetDeployments model.deployments
+                    -- in
+                    --     ( { model | tab = idx, deployments = deployments }, Cmd.map DeploymentsMsg cmd
+                    --                        )
+                    ( { model | tab = idx }, Cmd.none )
+
+                1 ->
+                    ( { model | tab = idx }, Cmd.none )
+
+                _ ->
+                    ( { model | tab = idx }, Cmd.none )
+
+        DeploymentsMsg msg ->
+            let
+                ( deployments, cmd ) =
+                    Deployments.update msg model.deployments
+            in
+                ( { model | deployments = deployments }, Cmd.map (DeploymentsMsg) cmd )
 
         Mdl msg ->
             Material.update Mdl msg model
@@ -71,12 +103,12 @@ view model =
             , Tabs.onSelectTab SelectTab
             , Tabs.activeTab model.tab
             ]
-            [ Tabs.label [] [ text "Tab One" ]
+            [ Tabs.label [] [ text "VMs" ]
             , Tabs.textLabel [] "Tab Two"
             ]
             [ case model.tab of
                 0 ->
-                    div [] [ text "Content of tab one" ]
+                    div [] [ App.map DeploymentsMsg (Deployments.view model.deployments) ]
 
                 1 ->
                     div [] [ text "Content of tab two" ]
@@ -85,12 +117,3 @@ view model =
                     div [] []
             ]
         ]
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none

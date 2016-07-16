@@ -3,7 +3,7 @@ module VM exposing (..)
 import Html exposing (..)
 import Html.Events exposing (onClick)
 import Platform.Cmd exposing (Cmd)
-    import Html.App as App
+import Html.App as App
 import Json.Decode exposing (int, string, list, Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 
