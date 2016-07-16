@@ -6,14 +6,10 @@ import Html.Attributes exposing (..)
 import Http
 import Json.Decode exposing (..)
 import List exposing (map)
+import Material.Progress as Loading
 import Material
 import Platform.Cmd exposing (Cmd)
 import Task
-
-
--- import Material.Scheme
--- import Material.Button as Button
--- import Material.Options exposing (css)
 
 
 main : Program Never
@@ -32,6 +28,7 @@ main =
 
 type alias Model =
     { stemcells : List Stemcell
+    , loading : Bool
     , mdl : Material.Model
     }
 
@@ -44,7 +41,7 @@ type alias Stemcell =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [] Material.model, getStemcells )
+    ( Model [] True Material.model, getStemcells )
 
 
 
@@ -59,19 +56,19 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action model =
-    case action of
+update msg model =
+    case msg of
         GetStemcells ->
             ( model, getStemcells )
 
         GetSucceed stemcells ->
-            ( { model | stemcells = stemcells }, Cmd.none )
+            ( { model | stemcells = stemcells, loading = False }, Cmd.none )
 
         GetFail _ ->
             ( model, Cmd.none )
 
-        MDL action' ->
-            Material.update MDL action' model
+        MDL msg ->
+            Material.update MDL msg model
 
 
 
@@ -85,8 +82,11 @@ type alias Mdl =
 view : Model -> Html Msg
 view model =
     div []
-        [ ul [ attribute "class" "mdl-list" ]
-            (List.map stemcellListItem model.stemcells)
+        [ if model.loading then
+            Loading.indeterminate
+          else
+            ul [ attribute "class" "mdl-list" ]
+                (List.map stemcellListItem model.stemcells)
         ]
 
 
