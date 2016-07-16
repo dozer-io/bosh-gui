@@ -3,6 +3,7 @@ module Bosh exposing (..)
 import Platform.Cmd exposing (Cmd, none)
 import Html exposing (..)
 import Html.App as App
+import TimeTravel.Html.App as TimeTravel
 import Material.Tabs as Tabs
 import Material
 import Deployments
@@ -11,7 +12,8 @@ import Stemcells
 
 main : Program Never
 main =
-    App.program
+    -- App.program
+    TimeTravel.program
         { init = init
         , view = view
         , update = update
