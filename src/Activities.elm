@@ -1,7 +1,10 @@
 module Activities exposing (..)
 
+import Material.Grid exposing (grid, cell, size, noSpacing, Device(..))
+import Material.Options as Options exposing (css)
+import Material.Elevation exposing (e3)
 import Html exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 import Html.App as App
 import TimeTravel.Html.App as TimeTravel
 import Http
@@ -97,14 +100,19 @@ update action model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ (if model.loading then
-            h1 [] [ text "Loading" ]
-           else
-            text ""
-          )
-        , ul [ class "mdl-list" ]
-            <| List.indexedMap viewActivity model.activities
+    grid [ noSpacing ]
+        [ cell [ size All 4, e3, css "display" "inline-flex" ]
+            [ (if model.loading then
+                h1 [] [ text "Loading" ]
+               else
+                text ""
+              )
+            , ul [ class "mdl-list", style [ ( "width", "100%" ) ] ]
+                <| List.indexedMap viewActivity model.activities
+            ]
+        , cell [ size All 8 ]
+            [ text "detail"
+            ]
         ]
 
 

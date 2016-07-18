@@ -7,10 +7,15 @@ import Html exposing (..)
 
 import Platform.Cmd exposing (Cmd)
 import Material
+import Material.Button as Button exposing (..)
+import Material.Icon as Icon
+import Material.Color as Color exposing (color, Hue(..), Shade(..), background, white)
+import Material.Options exposing (styled, nop, cs)
 import Html.App as App
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 import Json.Decode exposing (int, string, list, float, oneOf, null, Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
+import String
 import Time exposing (..)
 import TimeAgo exposing (timeAgo)
 import Task exposing (perform)
@@ -35,7 +40,7 @@ type alias Mdl =
 
 
 type alias Model =
-    { mdl : Material.Model, activity : Activity, now : Time }
+    { mdl : Material.Model, activity : Activity, now : Time, selected : Bool }
 
 
 type alias Activity =
@@ -76,7 +81,7 @@ sampleActivity =
 
 init : Activity -> ( Model, Cmd Msg )
 init activity =
-    ( Model Material.model activity (second * 0), Task.perform Tick Tick Time.now )
+    ( Model Material.model activity (second * 0) False, Task.perform Tick Tick Time.now )
 
 
 
@@ -86,6 +91,7 @@ init activity =
 type Msg
     = Mdl Material.Msg
     | Tick Time.Time
+    | Click
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -97,6 +103,9 @@ update msg model =
         Tick now ->
             ( { model | now = now }, Cmd.none )
 
+        Click ->
+            ( { model | selected = True }, Cmd.none )
+
 
 
 -- VIEW
@@ -104,15 +113,16 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    li [ class "mdl-list__item mdl-list__item--two-line" ]
+    styled li
+        [ cs "mdl-list__item mdl-list__item--three-line", selectedStyle model.selected ]
         [ span [ class "mdl-list__item-primary-content" ]
             [ i [ class "material-icons mdl-list__item-avatar" ]
                 [ text "person" ]
             , span []
                 [ text <| "#" ++ (toString model.activity.id) ++ " " ++ model.activity.description
                 ]
-            , span [ class "mdl-list__item-sub-title" ]
-                [ text model.activity.result
+            , span [ class "mdl-list__item-text-body", style [ ( "whiteSpace", "nowrap" ) ] ]
+                [ text <| String.slice 0 65 model.activity.result
                 , br [] []
                 , b []
                     [ text
@@ -124,7 +134,24 @@ view model =
                     ]
                 ]
             ]
+        , span [ class "mdl-list__item-secondary-action" ]
+            [ Button.render Mdl
+                [ 0 ]
+                model.mdl
+                [ Button.icon
+                , Button.ripple
+                , Button.onClick Click
+                ]
+                [ Icon.i "keyboard_arrow_right" ]
+            ]
         ]
+
+
+selectedStyle selected =
+    if selected then
+        background <| color LightBlue S50
+    else
+        nop
 
 
 
