@@ -12,18 +12,22 @@ type alias Range =
     }
 
 
+day : Time
 day =
     hour * 24
 
 
+month : Time
 month =
     day * 30
 
 
+year : Time
 year =
     day * 365
 
 
+ranges : List Range
 ranges =
     [ Range (minute - second) second "second" "seconds"
     , Range (hour - second) minute "minute" "minutes"
