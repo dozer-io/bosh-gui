@@ -6,7 +6,10 @@ import Html.App as App
 import Http
 import Json.Decode exposing (..)
 import Platform.Cmd exposing (Cmd)
-import Material.Progress as Loading
+
+
+-- import Material.Progress as Loading
+
 import Material
 import Task
 import String

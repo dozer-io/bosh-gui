@@ -113,6 +113,7 @@ view model =
                 ]
             , span [ class "mdl-list__item-sub-title" ]
                 [ text model.activity.result
+                , br [] []
                 , b []
                     [ text
                         <| model.activity.state

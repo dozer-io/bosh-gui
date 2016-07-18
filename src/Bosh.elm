@@ -8,6 +8,7 @@ import Material.Tabs as Tabs
 import Material
 import Deployments
 import Stemcells
+import Activities
 
 
 main : Program Never
@@ -32,28 +33,37 @@ type alias Mdl =
 type alias Model =
     { mdl : Material.Model
     , tab : Int
+    , deploymentsLoaded : Bool
     , deployments : Deployments.Model
     , stemcellsLoaded : Bool
     , stemcells : Stemcells.Model
+    , activitiesLoaded : Bool
+    , activities : Activities.Model
     }
 
 
 init : ( Model, Cmd Msg )
 init =
     let
-        ( deployments, cmd ) =
+        ( deployments, _ ) =
             Deployments.init
 
         ( stemcells, _ ) =
             Stemcells.init
+
+        ( activities, cmd ) =
+            Activities.init
     in
         ( { mdl = Material.model
           , tab = 0
+          , deploymentsLoaded = False
           , deployments = deployments
           , stemcellsLoaded = False
           , stemcells = stemcells
+          , activitiesLoaded = True
+          , activities = activities
           }
-        , Cmd.map DeploymentsMsg cmd
+        , Cmd.map ActivitiesMsg cmd
         )
 
 
@@ -65,6 +75,7 @@ type Msg
     = SelectTab Int
     | Mdl Material.Msg
     | DeploymentsMsg Deployments.Msg
+    | ActivitiesMsg Activities.Msg
     | StemcellsMsg Stemcells.Msg
 
 
@@ -74,9 +85,30 @@ update msg model =
         SelectTab idx ->
             case idx of
                 0 ->
-                    ( { model | tab = idx }, Cmd.none )
+                    if model.activitiesLoaded then
+                        ( { model | tab = idx }, Cmd.none )
+                    else
+                        let
+                            ( activities, cmd ) =
+                                Activities.update Activities.GetActivities model.activities
+                        in
+                            ( { model | tab = idx, activities = activities, activitiesLoaded = True }
+                            , Cmd.map ActivitiesMsg cmd
+                            )
 
                 1 ->
+                    if model.deploymentsLoaded then
+                        ( { model | tab = idx }, Cmd.none )
+                    else
+                        let
+                            ( deployments, cmd ) =
+                                Deployments.update Deployments.GetDeployments model.deployments
+                        in
+                            ( { model | tab = idx, deployments = deployments, deploymentsLoaded = True }
+                            , Cmd.map DeploymentsMsg cmd
+                            )
+
+                2 ->
                     if model.stemcellsLoaded then
                         ( { model | tab = idx }, Cmd.none )
                     else
@@ -105,6 +137,13 @@ update msg model =
             in
                 ( { model | stemcells = stemcells }, Cmd.map (StemcellsMsg) cmd )
 
+        ActivitiesMsg msg ->
+            let
+                ( activities, cmd ) =
+                    Activities.update msg model.activities
+            in
+                ( { model | activities = activities }, Cmd.map (ActivitiesMsg) cmd )
+
         Mdl msg ->
             Material.update Mdl msg model
 
@@ -123,14 +162,18 @@ view model =
             , Tabs.onSelectTab SelectTab
             , Tabs.activeTab model.tab
             ]
-            [ Tabs.textLabel [] "VMs"
+            [ Tabs.textLabel [] "Activities"
+            , Tabs.textLabel [] "VMs"
             , Tabs.textLabel [] "Stemcells"
             ]
             [ case model.tab of
                 0 ->
-                    div [] [ App.map DeploymentsMsg (Deployments.view model.deployments) ]
+                    div [] [ App.map ActivitiesMsg (Activities.view model.activities) ]
 
                 1 ->
+                    div [] [ App.map DeploymentsMsg (Deployments.view model.deployments) ]
+
+                2 ->
                     div [] [ App.map StemcellsMsg (Stemcells.view model.stemcells) ]
 
                 _ ->

@@ -1,6 +1,7 @@
 module Activities exposing (..)
 
 import Html exposing (..)
+import Html.Attributes exposing (class)
 import Html.App as App
 import TimeTravel.Html.App as TimeTravel
 import Http
@@ -102,7 +103,7 @@ view model =
            else
             text ""
           )
-        , div []
+        , ul [ class "mdl-list" ]
             <| List.indexedMap viewActivity model.activities
         ]
 
