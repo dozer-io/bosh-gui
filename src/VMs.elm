@@ -6,6 +6,8 @@ import Html.App as App
 import Http
 import Json.Decode exposing (..)
 import Platform.Cmd exposing (Cmd)
+import Material.Progress as Loading
+import Material
 import Task
 import String
 import VM
@@ -154,13 +156,11 @@ view : Model -> Html Msg
 view model =
     div []
         [ h1 [] [ text model.deployment ]
-        , (if model.loading then
+        , if model.loading then
             loading
-           else
-            text ""
-          )
-        , div []
-            <| List.indexedMap viewVM model.vms
+          else
+            div []
+                <| List.indexedMap viewVM model.vms
         ]
 
 
