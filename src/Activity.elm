@@ -9,7 +9,7 @@ import Platform.Cmd exposing (Cmd)
 import Material
 import Html.App as App
 import Html.Attributes exposing (class)
-import Json.Decode exposing (int, string, list, float, Decoder)
+import Json.Decode exposing (int, string, list, float, oneOf, null, Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
 import Time exposing (..)
 import TimeAgo exposing (timeAgo)
@@ -55,13 +55,13 @@ decodeActivity =
         |> required "state" string
         |> required "description" string
         |> required "timestamp" time
-        |> required "result" string
+        |> required "result" (oneOf [ string, null "" ])
         |> required "user" string
 
 
 time : Decoder Time
 time =
-    float `Json.Decode.andThen` \ms -> Json.Decode.succeed <| Time.millisecond * ms
+    float `Json.Decode.andThen` \second -> Json.Decode.succeed <| Time.second * second
 
 
 sampleActivity : Activity
@@ -100,15 +100,6 @@ update msg model =
 
 
 -- VIEW
--- <span class="mdl-list__item-primary-content">
---     <i class="material-icons mdl-list__item-avatar">person</i>
---     <span>Bryan Cranston</span>
---     <span class="mdl-list__item-sub-title">62 Episodes</span>
--- </span>
--- <span class="mdl-list__item-secondary-content">
---     <span class="mdl-list__item-secondary-info">Actor</span>
---     <a class="mdl-list__item-secondary-action" href="#"><i class="material-icons">star</i></a>
--- </span>
 
 
 view : Model -> Html Msg
