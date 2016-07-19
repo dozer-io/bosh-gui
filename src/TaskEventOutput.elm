@@ -217,7 +217,17 @@ eventsToStages events =
 
 view : Model -> Html Msg
 view model =
-    div [] []
+    let
+        stageView stage =
+            div []
+                [ h3 [] [ text stage.name ]
+                , ol [] <| List.map taskView stage.tasks
+                ]
+
+        taskView task =
+            li [] [ text task.description ]
+    in
+        div [] <| List.map stageView model.stages
 
 
 

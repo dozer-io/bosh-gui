@@ -14,6 +14,7 @@ import List.Extra exposing (getAt, setAt)
 import Platform.Cmd exposing (Cmd)
 import Task
 import Activity
+import TaskEventOutput
 
 
 main : Program Never
@@ -33,13 +34,14 @@ main =
 
 type alias Model =
     { activities : List Activity.Model
+    , taskEventOutput : Maybe TaskEventOutput.Model
     , loading : Bool
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model [] True, getActivities )
+    ( Model [] Nothing True, getActivities )
 
 
 
@@ -50,7 +52,8 @@ type Msg
     = GetActivities
     | GetActivitiesFail Http.Error
     | GetActivitiesSucceed (List Activity.Activity)
-    | SubMsg Int Activity.Msg
+    | SubMsgActivity Int Activity.Msg
+    | SubMsgTaskEventOutput TaskEventOutput.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,22 +72,38 @@ update action model =
                         ( activityModel, cmd ) =
                             Activity.init activity
                     in
-                        ( activityModel, Cmd.map (SubMsg id) cmd )
+                        ( activityModel, Cmd.map (SubMsgActivity id) cmd )
 
                 ( newActivities, cmds ) =
                     List.unzip (List.indexedMap createActivity activities)
             in
                 ( { model | loading = False, activities = newActivities }, Cmd.batch cmds )
 
-        SubMsg id subMsg ->
+        SubMsgActivity id subMsg ->
             case subMsg of
                 Activity.Select ->
                     let
-                        ( activities, cmds ) =
+                        ( activities, activitiesCmds ) =
                             List.unzip
                                 <| List.indexedMap (selectById id) model.activities
                     in
-                        ( { model | activities = activities }, Cmd.batch cmds )
+                        case List.Extra.getAt id activities of
+                            Nothing ->
+                                ( model, Cmd.none )
+
+                            Just selectedActivity ->
+                                let
+                                    ( taskEventOutput, taskEventOutputCmd ) =
+                                        TaskEventOutput.init selectedActivity.activity.id
+                                in
+                                    ( { model
+                                        | activities = activities
+                                        , taskEventOutput = Just taskEventOutput
+                                      }
+                                    , Cmd.batch
+                                        <| (Cmd.map SubMsgTaskEventOutput taskEventOutputCmd)
+                                        :: activitiesCmds
+                                    )
 
                 _ ->
                     case getAt id model.activities of
@@ -101,9 +120,24 @@ update action model =
                                         ( model, Cmd.none )
 
                                     Just activities ->
-                                        ( { model | activities = activities }, Cmd.map (SubMsg id) cmds )
+                                        ( { model | activities = activities }, Cmd.map (SubMsgActivity id) cmds )
+
+        SubMsgTaskEventOutput subMsg ->
+            case model.taskEventOutput of
+                Just currentTaskEventOutput ->
+                    let
+                        ( taskEventOutput, cmd ) =
+                            TaskEventOutput.update subMsg currentTaskEventOutput
+                    in
+                        ( { model | taskEventOutput = (Just taskEventOutput) }
+                        , Cmd.map (SubMsgTaskEventOutput) cmd
+                        )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
 
+selectById : Int -> Int -> Activity.Model -> ( Activity.Model, Cmd Msg )
 selectById selectedId id activity =
     let
         msg =
@@ -115,7 +149,7 @@ selectById selectedId id activity =
         ( model, cmds ) =
             Activity.update msg activity
     in
-        ( model, Cmd.map (SubMsg id) cmds )
+        ( model, Cmd.map (SubMsgActivity id) cmds )
 
 
 
@@ -135,14 +169,19 @@ view model =
                 <| List.indexedMap viewActivity model.activities
             ]
         , cell [ size All 8 ]
-            [ text "detail"
+            [ case model.taskEventOutput of
+                Just taskEventOutput ->
+                    App.map SubMsgTaskEventOutput <| TaskEventOutput.view taskEventOutput
+
+                Nothing ->
+                    p [] [ text "select a task from the list on the left side of your screen" ]
             ]
         ]
 
 
 viewActivity : Int -> Activity.Model -> Html Msg
 viewActivity id model =
-    App.map (SubMsg id) (Activity.view model)
+    App.map (SubMsgActivity id) (Activity.view model)
 
 
 

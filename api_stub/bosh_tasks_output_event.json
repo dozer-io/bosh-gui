@@ -1,0 +1,14 @@
+{"time":1466794922,"stage":"Extracting release","tags":[],"total":1,"task":"Extracting release","index":1,"state":"started","progress":0}
+{"time":1466794923,"stage":"Extracting release","tags":[],"total":1,"task":"Extracting release","index":1,"state":"finished","progress":100}
+{"time":1466794923,"stage":"Verifying manifest","tags":[],"total":1,"task":"Verifying manifest","index":1,"state":"started","progress":0}
+{"time":1466794923,"stage":"Verifying manifest","tags":[],"total":1,"task":"Verifying manifest","index":1,"state":"finished","progress":100}
+{"time":1466794923,"stage":"Resolving package dependencies","tags":[],"total":1,"task":"Resolving package dependencies","index":1,"state":"started","progress":0}
+{"time":1466794923,"stage":"Resolving package dependencies","tags":[],"total":1,"task":"Resolving package dependencies","index":1,"state":"finished","progress":100}
+{"time":1466794923,"stage":"Creating new packages","tags":[],"total":1,"task":"redis-server/b53d5357ab95a74c9489cd98a024e6ef6047aba0","index":1,"state":"started","progress":0}
+{"time":1466794923,"stage":"Creating new packages","tags":[],"total":1,"task":"redis-server/b53d5357ab95a74c9489cd98a024e6ef6047aba0","index":1,"state":"finished","progress":100}
+{"time":1466794923,"stage":"Creating new jobs","tags":[],"total":2,"task":"acceptance-tests/d1b927ac3839a52f7caa29ac80878d8625fb4bcc","index":1,"state":"started","progress":0}
+{"time":1466794924,"stage":"Creating new jobs","tags":[],"total":2,"task":"acceptance-tests/d1b927ac3839a52f7caa29ac80878d8625fb4bcc","index":1,"state":"finished","progress":100}
+{"time":1466794924,"stage":"Creating new jobs","tags":[],"total":2,"task":"redis/a52b9ad8bf105901dbd55e6dfb3af359b24a2d14","index":2,"state":"started","progress":0}
+{"time":1466794924,"stage":"Creating new jobs","tags":[],"total":2,"task":"redis/a52b9ad8bf105901dbd55e6dfb3af359b24a2d14","index":2,"state":"finished","progress":100}
+{"time":1466794924,"stage":"Release has been created","tags":[],"total":1,"task":"redis/12","index":1,"state":"started","progress":0}
+{"time":1466794924,"stage":"Release has been created","tags":[],"total":1,"task":"redis/12","index":1,"state":"finished","progress":100}

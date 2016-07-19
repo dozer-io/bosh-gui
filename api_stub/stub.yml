@@ -70,6 +70,16 @@
 
 - request:
     method: [GET]
+    url: ^/bosh/([^\/]+)/tasks/([^\/]+)/output$
+    query:
+      type: event
+  response:
+    file: bosh_tasks_output_event.json
+    headers:
+      content-type: application/json
+      
+- request:
+    method: [GET]
     url: ^/dozer/directors$
   response:
     file: dozer_directors_list.json
