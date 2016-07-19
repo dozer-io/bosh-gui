@@ -2,13 +2,17 @@ module Main exposing (..)
 
 import ElmTest exposing (..)
 import TimeAgoTest
+import TaskEventOutputTest
 
 
 tests : Test
 tests =
-    TimeAgoTest.tests
+    suite "All tests"
+        [ TimeAgoTest.tests
+        , TaskEventOutputTest.tests
+        ]
 
 
 main : Program Never
 main =
-    runSuite tests
+    runSuiteHtml tests
