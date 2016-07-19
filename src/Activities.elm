@@ -1,7 +1,8 @@
 module Activities exposing (..)
 
 import Material.Grid exposing (grid, cell, size, noSpacing, Device(..))
-import Material.Options as Options exposing (css)
+import Material.Options as Options exposing (css, cs)
+import Material.Color as Color exposing (color, Hue(..), Shade(..), background)
 import Material.Elevation exposing (e3)
 import Html exposing (..)
 import Html.Attributes exposing (class, style)
@@ -159,16 +160,19 @@ selectById selectedId id activity =
 view : Model -> Html Msg
 view model =
     grid [ noSpacing ]
-        [ cell [ size All 4, e3, css "display" "inline-flex" ]
+        [ cell [ size All 4, e3, css "display" "inline-flex", css "z-index" "1" ]
             [ (if model.loading then
                 h1 [] [ text "Loading" ]
                else
                 text ""
               )
-            , ul [ class "mdl-list", style [ ( "width", "100%" ) ] ]
+            , ul
+                [ class "mdl-list"
+                , style [ ( "width", "100%" ), ( "paddingTop", "0px" ), ( "marginTop", "0px" ) ]
+                ]
                 <| List.indexedMap viewActivity model.activities
             ]
-        , cell [ size All 8 ]
+        , cell [ size All 8, cs "mdl-components__pages", background <| color Grey S100 ]
             [ case model.taskEventOutput of
                 Just taskEventOutput ->
                     App.map SubMsgTaskEventOutput <| TaskEventOutput.view taskEventOutput

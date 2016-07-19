@@ -7,13 +7,10 @@ import Html exposing (..)
 
 import Platform.Cmd exposing (Cmd)
 import Material
-
-
--- import Material.Button as Button exposing (..)
--- import Material.Icon as Icon
--- import Material.Color as Color exposing (color, Hue(..), Shade(..), background, white)
--- import Material.Options exposing (styled', nop, cs)
-
+import Material.Color as Color exposing (color, Hue(..), Shade(..), background, white)
+import Material.Icon as Icon
+import Material.Spinner as Loading
+import Material.Options exposing (styled, nop, cs, css)
 import Html.App as App
 
 
@@ -220,50 +217,49 @@ view model =
     let
         stageView stage =
             div []
-                [ h3 [] [ text stage.name ]
-                , ol [] <| List.map taskView stage.tasks
+                [ styled h5
+                    [ cs "mdl-typography--headline"
+                    , css "fontSize" "16px"
+                    , css "padding-left" "40px"
+                    , Color.text <| color Grey S600
+                    ]
+                    [ text stage.name ]
+                , styled ol [ background white ]
+                    <| List.map taskView stage.tasks
                 ]
 
         taskView task =
-            li [] [ text task.description ]
+            styled li
+                [ cs "mdl-list__item" ]
+                [ styled span
+                    [ cs "mdl-list__item-primary-content" ]
+                    [ taskState task.state
+                    , text task.description
+                    ]
+                ]
+
+        taskState state =
+            case state of
+                InProgress ->
+                    Loading.spinner [ Loading.active True, Loading.singleColor True ]
+
+                Started ->
+                    Loading.spinner
+                        [ Loading.active True
+                        , Loading.singleColor True
+                        , cs "material-icons mdl-list__item-icon"
+                        ]
+
+                Finished ->
+                    Icon.view "done" [ Icon.size24, cs "material-icons mdl-list__item-icon" ]
+
+                _ ->
+                    Icon.view "error_outline" [ Icon.size24, cs "material-icons mdl-list__item-icon" ]
     in
         div [] <| List.map stageView model.stages
 
 
 
--- styled' li
---     [ cs "mdl-list__item mdl-list__item--three-line", selectedStyle model.selected ]
---     [ Html.Events.onClick Select ]
---     [ span [ class "mdl-list__item-primary-content" ]
---         [ i [ class "material-icons mdl-list__item-avatar" ]
---             [ text "person" ]
---         , span []
---             [ text <| "#" ++ (toString model.activity.id) ++ " " ++ model.activity.description
---             ]
---         , span [ class "mdl-list__item-text-body", style [ ( "whiteSpace", "nowrap" ) ] ]
---             [ text <| String.slice 0 65 model.activity.result
---             , br [] []
---             , b []
---                 [ text
---                     <| model.activity.state
---                     ++ " "
---                     ++ (timeAgo model.now model.activity.timestamp)
---                     ++ " by "
---                     ++ model.activity.user
---                 ]
---             ]
---         ]
---     , span [ class "mdl-list__item-secondary-action" ]
---         [ Button.render Mdl
---             [ 0 ]
---             model.mdl
---             [ Button.icon
---             , Button.ripple
---             , Button.onClick Select
---             ]
---             [ Icon.i "keyboard_arrow_right" ]
---         ]
---     ]
 -- SUBSCRIPTIONS
 
 
