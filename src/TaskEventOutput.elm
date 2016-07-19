@@ -20,7 +20,7 @@ import Html.App as App
 -- import Html.Attributes exposing (class, style)
 
 import Json.Decode exposing (int, string, list, float, oneOf, null, Decoder, decodeString)
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode.Pipeline exposing (decode, required, optional)
 import List.Extra exposing (groupWhile)
 import String
 import Time exposing (..)
@@ -63,7 +63,8 @@ type alias Task =
     , duration : Time
     , tags : List String
     , description : String
-    , state : String
+    , state : State
+    , error : String
     }
 
 
@@ -72,8 +73,17 @@ type alias Event =
     , stage : String
     , tags : List String
     , task : String
-    , state : String
+    , state : State
+    , error : String
     }
+
+
+type State
+    = InProgress
+    | Started
+    | Finished
+    | Failed
+    | Unknown
 
 
 decodeEvent : Decoder Event
@@ -83,7 +93,31 @@ decodeEvent =
         |> required "stage" string
         |> required "tags" (list string)
         |> required "task" string
-        |> required "stage" string
+        |> required "state" state
+        |> optional "error" string ""
+
+
+state : Decoder State
+state =
+    let
+        decodeState state =
+            case state of
+                "in_progress" ->
+                    Json.Decode.succeed InProgress
+
+                "started" ->
+                    Json.Decode.succeed Started
+
+                "finished" ->
+                    Json.Decode.succeed Finished
+
+                "failed" ->
+                    Json.Decode.succeed Failed
+
+                _ ->
+                    Json.Decode.succeed Unknown
+    in
+        string `Json.Decode.andThen` decodeState
 
 
 time : Decoder Time
@@ -135,7 +169,7 @@ eventsToStages : List Event -> List Stage
 eventsToStages events =
     let
         nullEvent =
-            Event 0 "" [] "" ""
+            Event 0 "" [] "" Unknown ""
 
         firstEvent eventList =
             Maybe.withDefault nullEvent
@@ -158,7 +192,7 @@ eventsToStages events =
         groupByTask x y =
             x.task == y.task
 
-        toStages taskList =
+        toStage taskList =
             Stage (firstEvent <| firstTask taskList).stage
                 <| List.map toTask taskList
 
@@ -170,9 +204,9 @@ eventsToStages events =
                 last =
                     lastEvent eventList
             in
-                Task first.time (last.time - first.time) first.tags first.task last.state
+                Task first.time (last.time - first.time) first.tags first.task last.state last.error
     in
-        List.map toStages
+        List.map toStage
             <| groupWhile groupByStage
             <| groupWhile groupByTask events
 
