@@ -1,10 +1,7 @@
 module Activity exposing (..)
 
 import Html exposing (..)
-
-
--- import Html.Events exposing (onClick)
-
+import Html.Events exposing (onClick)
 import Platform.Cmd exposing (Cmd)
 import Material
 import Material.Button as Button exposing (..)
@@ -91,7 +88,8 @@ init activity =
 type Msg
     = Mdl Material.Msg
     | Tick Time.Time
-    | Click
+    | Select
+    | DeSelect
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -103,8 +101,11 @@ update msg model =
         Tick now ->
             ( { model | now = now }, Cmd.none )
 
-        Click ->
+        Select ->
             ( { model | selected = True }, Cmd.none )
+
+        DeSelect ->
+            ( { model | selected = False }, Cmd.none )
 
 
 
@@ -115,7 +116,7 @@ view : Model -> Html Msg
 view model =
     styled li
         [ cs "mdl-list__item mdl-list__item--three-line", selectedStyle model.selected ]
-        [ span [ class "mdl-list__item-primary-content" ]
+        [ span [ class "mdl-list__item-primary-content", Html.Events.onClick Select ]
             [ i [ class "material-icons mdl-list__item-avatar" ]
                 [ text "person" ]
             , span []
@@ -140,7 +141,7 @@ view model =
                 model.mdl
                 [ Button.icon
                 , Button.ripple
-                , Button.onClick Click
+                , Button.onClick Select
                 ]
                 [ Icon.i "keyboard_arrow_right" ]
             ]

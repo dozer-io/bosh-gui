@@ -77,21 +77,45 @@ update action model =
                 ( { model | loading = False, activities = newActivities }, Cmd.batch cmds )
 
         SubMsg id subMsg ->
-            case getAt id model.activities of
-                Nothing ->
-                    ( model, Cmd.none )
-
-                Just activity ->
+            case subMsg of
+                Activity.Select ->
                     let
-                        ( newActivity, cmds ) =
-                            Activity.update subMsg activity
+                        ( activities, cmds ) =
+                            List.unzip
+                                <| List.indexedMap (selectById id) model.activities
                     in
-                        case setAt id newActivity model.activities of
-                            Nothing ->
-                                ( model, Cmd.none )
+                        ( { model | activities = activities }, Cmd.batch cmds )
 
-                            Just activities ->
-                                ( { model | activities = activities }, Cmd.map (SubMsg id) cmds )
+                _ ->
+                    case getAt id model.activities of
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                        Just activity ->
+                            let
+                                ( newActivity, cmds ) =
+                                    Activity.update subMsg activity
+                            in
+                                case setAt id newActivity model.activities of
+                                    Nothing ->
+                                        ( model, Cmd.none )
+
+                                    Just activities ->
+                                        ( { model | activities = activities }, Cmd.map (SubMsg id) cmds )
+
+
+selectById selectedId id activity =
+    let
+        msg =
+            if selectedId == id then
+                Activity.Select
+            else
+                Activity.DeSelect
+
+        ( model, cmds ) =
+            Activity.update msg activity
+    in
+        ( model, Cmd.map (SubMsg id) cmds )
 
 
 
