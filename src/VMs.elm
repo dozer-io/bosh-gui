@@ -100,20 +100,13 @@ update msg model =
 
         GetTaskResultSucceed rawVMs ->
             let
-                vms =
-                    case decodeVMsResult rawVMs of
-                        Err _ ->
-                            []
-
-                        Ok vms ->
-                            vms
-
                 ( newVMs, cmds ) =
-                    List.unzip (List.indexedMap createVM vms)
+                    List.unzip
+                        <| List.indexedMap createVM
+                        <| Result.withDefault []
+                        <| decodeVMsResult rawVMs
             in
-                ( { model | vms = newVMs, loading = False }
-                , Cmd.batch cmds
-                )
+                ( { model | vms = newVMs, loading = False }, Cmd.batch cmds )
 
         SubMsg id subMsg ->
             let
