@@ -7,7 +7,7 @@ import Material
 import Material.Button as Button exposing (..)
 import Material.Icon as Icon
 import Material.Color as Color exposing (color, Hue(..), Shade(..), background, white)
-import Material.Options exposing (styled, nop, cs)
+import Material.Options exposing (styled', nop, cs)
 import Html.App as App
 import Html.Attributes exposing (class, style)
 import Json.Decode exposing (int, string, list, float, oneOf, null, Decoder)
@@ -114,9 +114,10 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    styled li
+    styled' li
         [ cs "mdl-list__item mdl-list__item--three-line", selectedStyle model.selected ]
-        [ span [ class "mdl-list__item-primary-content", Html.Events.onClick Select ]
+        [ Html.Events.onClick Select ]
+        [ span [ class "mdl-list__item-primary-content" ]
             [ i [ class "material-icons mdl-list__item-avatar" ]
                 [ text "person" ]
             , span []
