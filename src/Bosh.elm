@@ -4,7 +4,9 @@ import Platform.Cmd exposing (Cmd, none)
 import Html exposing (..)
 import Html.App as App
 import TimeTravel.Html.App as TimeTravel
-import Material.Tabs as Tabs
+import Material.Layout as Layout
+import Material.Color as Color
+import Material.Options as Options
 import Material
 import Deployments
 import Stemcells
@@ -18,7 +20,9 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions =
+            always Sub.none
+            -- (Layout.subs Mdl)
         }
 
 
@@ -53,6 +57,9 @@ init =
 
         ( activities, cmd ) =
             Activities.init
+
+        layoutCmd =
+            Layout.sub0 Mdl
     in
         ( { mdl = Material.model
           , tab = 0
@@ -63,7 +70,7 @@ init =
           , activitiesLoaded = True
           , activities = activities
           }
-        , Cmd.map ActivitiesMsg cmd
+        , Cmd.batch [ Cmd.map ActivitiesMsg cmd, layoutCmd ]
         )
 
 
@@ -154,19 +161,24 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ Tabs.render Mdl
-            [ 0 ]
-            model.mdl
-            [ Tabs.ripple
-            , Tabs.onSelectTab SelectTab
-            , Tabs.activeTab model.tab
-            ]
-            [ Tabs.textLabel [] "Activities"
-            , Tabs.textLabel [] "VMs"
-            , Tabs.textLabel [] "Stemcells"
-            ]
-            [ case model.tab of
+    Layout.render Mdl
+        model.mdl
+        [ Layout.fixedTabs
+        , Layout.selectedTab model.tab
+        , Layout.onSelectTab SelectTab
+        ]
+        { header = []
+        , drawer = []
+        , tabs =
+            ( [ text "Activities"
+              , text "VMs"
+              , text "Stemcells"
+              ]
+            , []
+            )
+        , main =
+            [ stylesheet
+            , case model.tab of
                 0 ->
                     div [] [ App.map ActivitiesMsg (Activities.view model.activities) ]
 
@@ -179,4 +191,13 @@ view model =
                 _ ->
                     div [] []
             ]
-        ]
+        }
+
+
+stylesheet : Html a
+stylesheet =
+    Options.stylesheet """
+  header.mdl-layout__header { min-height: 0px; }
+  a.mdl-layout__tab { color: rgba(255, 255, 255, .6); }
+  a.mdl-layout__tab.is-active { color: rgb(255, 255, 255) !important;}
+"""
