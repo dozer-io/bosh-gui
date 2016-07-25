@@ -150,15 +150,31 @@ view model =
     in
         Layout.render Mdl
             model.mdl
-            []
-            { header =
-                [ text
-                    <| case getAt selected directors of
-                        Nothing ->
-                            ""
+            [ Layout.fixedTabs
+            , Layout.selectedTab
+                <| case getAt selected directors of
+                    Nothing ->
+                        -1
 
-                        Just director ->
-                            (fst director).name
+                    Just director ->
+                        (snd director).tab
+            , Layout.onSelectTab
+                (\id ->
+                    SubMsg selected (Bosh.SelectTab id)
+                )
+            ]
+            { header =
+                [ Layout.row []
+                    [ Layout.title []
+                        [ text
+                            <| case getAt selected directors of
+                                Nothing ->
+                                    ""
+
+                                Just director ->
+                                    (fst director).name
+                        ]
+                    ]
                 ]
             , drawer =
                 [ case model.directors of
@@ -171,7 +187,13 @@ view model =
                             <| fst
                             <| List.unzip directors
                 ]
-            , tabs = ( [], [] )
+            , tabs =
+                case model.selectedDirector of
+                    Nothing ->
+                        ( [], [] )
+
+                    Just _ ->
+                        Bosh.tabsView
             , main =
                 [ case model.directors of
                     Nothing ->
@@ -218,7 +240,7 @@ viewBosh id directors =
             div [] [ text "not yet loaded" ]
 
         Just director ->
-            App.map (SubMsg id) <| Bosh.view <| snd director
+            App.map (SubMsg id) <| Bosh.mainView <| snd director
 
 
 

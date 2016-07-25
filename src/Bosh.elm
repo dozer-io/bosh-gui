@@ -170,29 +170,36 @@ view model =
         ]
         { header = []
         , drawer = []
-        , tabs =
-            ( [ text "Activities"
-              , text "VMs"
-              , text "Stemcells"
-              ]
-            , []
-            )
+        , tabs = tabsView
         , main =
             [ stylesheet
-            , case model.tab of
-                0 ->
-                    div [] [ App.map ActivitiesMsg (Activities.view model.activities) ]
-
-                1 ->
-                    div [] [ App.map DeploymentsMsg (Deployments.view model.deployments) ]
-
-                2 ->
-                    div [] [ App.map StemcellsMsg (Stemcells.view model.stemcells) ]
-
-                _ ->
-                    div [] []
+            , mainView model
             ]
         }
+
+
+tabsView =
+    ( [ text "Activities"
+      , text "VMs"
+      , text "Stemcells"
+      ]
+    , []
+    )
+
+
+mainView model =
+    case model.tab of
+        0 ->
+            div [] [ App.map ActivitiesMsg (Activities.view model.activities) ]
+
+        1 ->
+            div [] [ App.map DeploymentsMsg (Deployments.view model.deployments) ]
+
+        2 ->
+            div [] [ App.map StemcellsMsg (Stemcells.view model.stemcells) ]
+
+        _ ->
+            div [] []
 
 
 stylesheet : Html a
