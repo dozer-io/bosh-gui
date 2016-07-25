@@ -215,7 +215,7 @@ viewDirectorListItem selectedId id director =
     styled li
         [ cs "mdl-list__item"
         , if selectedId == id then
-            background <| color LightBlue S50
+            background <| color Blue S50
           else
             nop
         , Layout.onClick (SelectDirector id)

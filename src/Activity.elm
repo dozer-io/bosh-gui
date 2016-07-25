@@ -152,7 +152,7 @@ view model =
 selectedStyle : Bool -> Material.Options.Property a b
 selectedStyle selected =
     if selected then
-        background <| color LightBlue S50
+        background <| color Blue S50
     else
         nop
 
