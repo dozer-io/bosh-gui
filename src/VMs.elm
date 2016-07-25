@@ -10,7 +10,6 @@ import Platform.Cmd exposing (Cmd)
 
 -- import Material.Progress as Loading
 
-import Material
 import Task
 import String
 import VM

@@ -5,7 +5,6 @@ import Html exposing (..)
 import Html.App as App
 import TimeTravel.Html.App as TimeTravel
 import Material.Layout as Layout
-import Material.Color as Color
 import Material.Options as Options
 import Material
 import Deployments
@@ -17,7 +16,7 @@ main : Program Never
 main =
     -- App.program
     TimeTravel.program
-        { init = init
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000"
         , view = view
         , update = update
         , subscriptions =
@@ -43,11 +42,12 @@ type alias Model =
     , stemcells : Stemcells.Model
     , activitiesLoaded : Bool
     , activities : Activities.Model
+    , endpoint : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : String -> ( Model, Cmd Msg )
+init endpoint =
     let
         ( deployments, _ ) =
             Deployments.init
@@ -69,6 +69,7 @@ init =
           , stemcells = stemcells
           , activitiesLoaded = True
           , activities = activities
+          , endpoint = endpoint
           }
         , Cmd.batch [ Cmd.map ActivitiesMsg cmd, layoutCmd ]
         )
