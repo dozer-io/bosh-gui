@@ -21,6 +21,7 @@ import Json.Decode.Pipeline exposing (decode, required, optional)
 import List.Extra exposing (groupWhile)
 import String
 import Time exposing (..)
+import Erl
 
 
 -- import TimeAgo exposing (timeAgo)
@@ -32,7 +33,7 @@ import Http exposing (getString)
 main : Program Never
 main =
     App.program
-        { init = init 65
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000" 65
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -48,7 +49,13 @@ type alias Mdl =
 
 
 type alias Model =
-    { mdl : Mdl, stages : List Stage, loading : Bool, taskId : Int, now : Time }
+    { mdl : Mdl
+    , stages : List Stage
+    , loading : Bool
+    , taskId : Int
+    , now : Time
+    , endpoint : String
+    }
 
 
 type alias Stage =
@@ -122,10 +129,10 @@ time =
     float `Json.Decode.andThen` \second -> Json.Decode.succeed <| Time.second * second
 
 
-init : Int -> ( Model, Cmd Msg )
-init taskId =
-    ( Model Material.model [] True taskId (second * 0)
-    , Cmd.batch [ Task.perform Tick Tick Time.now, getTaskEventOutput taskId ]
+init : String -> Int -> ( Model, Cmd Msg )
+init endpoint taskId =
+    ( Model Material.model [] True taskId (second * 0) endpoint
+    , Cmd.batch [ Task.perform Tick Tick Time.now, getTaskEventOutput endpoint taskId ]
     )
 
 
@@ -150,7 +157,7 @@ update msg model =
             ( { model | now = now }, Cmd.none )
 
         GetTaskEventOutputFail _ ->
-            ( model, getTaskEventOutput model.taskId )
+            ( model, getTaskEventOutput model.endpoint model.taskId )
 
         GetTaskEventOutputSucceed rawEvents ->
             let
@@ -272,13 +279,14 @@ subscriptions model =
 -- HTTP
 
 
-getTaskEventOutput : Int -> Cmd Msg
-getTaskEventOutput taskId =
+getTaskEventOutput : String -> Int -> Cmd Msg
+getTaskEventOutput endpoint taskId =
     let
         url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/tasks/"
-                ++ toString taskId
-                ++ "/output?type=event"
+            Erl.parse endpoint
+                |> Erl.appendPathSegments [ "tasks", toString taskId, "output" ]
+                |> Erl.addQuery "type" "event"
+                |> Erl.toString
     in
         perform GetTaskEventOutputFail GetTaskEventOutputSucceed <| getString url
 

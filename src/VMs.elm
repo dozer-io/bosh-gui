@@ -19,7 +19,7 @@ import List.Extra
 main : Program Never
 main =
     App.program
-        { init = init "cf-warden"
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000" "cf-warden"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -35,6 +35,7 @@ type alias Model =
     , vms : List VM.Model
     , loading : Bool
     , taskUrl : TaskUrl
+    , endpoint : String
     }
 
 
@@ -46,9 +47,9 @@ type alias TaskUrl =
     String
 
 
-init : Deployment -> ( Model, Cmd Msg )
-init deployment =
-    ( Model deployment [] True "", getVMsTask deployment )
+init : String -> Deployment -> ( Model, Cmd Msg )
+init endpoint deployment =
+    ( Model deployment [] True "" endpoint, getVMsTask endpoint deployment )
 
 
 
@@ -69,7 +70,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GetVMsTaskFail _ ->
-            ( model, getVMsTask model.deployment )
+            ( model, getVMsTask model.endpoint model.deployment )
 
         GetTaskStateFail _ ->
             ( model, getTaskState model.taskUrl )
@@ -89,13 +90,13 @@ update msg model =
                     ( model, getTaskState model.taskUrl )
 
                 "timeout" ->
-                    ( model, getVMsTask model.deployment )
+                    ( model, getVMsTask model.endpoint model.deployment )
 
                 "error" ->
-                    ( model, getVMsTask model.deployment )
+                    ( model, getVMsTask model.endpoint model.deployment )
 
                 _ ->
-                    ( model, getVMsTask model.deployment )
+                    ( model, getVMsTask model.endpoint model.deployment )
 
         GetTaskResultSucceed rawVMs ->
             let
@@ -182,13 +183,14 @@ subscriptions model =
 -- HTTP
 
 
-getVMsTask : Deployment -> Cmd Msg
-getVMsTask deployment =
+getVMsTask : String -> Deployment -> Cmd Msg
+getVMsTask endpoint deployment =
     let
         url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/deployments/"
-                ++ deployment
-                ++ "/vms?format=full"
+            Erl.parse endpoint
+                |> Erl.appendPathSegments [ "deployments", deployment, "vms" ]
+                |> Erl.addQuery "format" "full"
+                |> Erl.toString
     in
         Task.perform GetVMsTaskFail GetVMsTaskSucceed <| Http.get decodeVMsTask url
 

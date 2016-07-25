@@ -50,13 +50,13 @@ init : String -> ( Model, Cmd Msg )
 init endpoint =
     let
         ( deployments, _ ) =
-            Deployments.init
+            Deployments.init endpoint
 
         ( stemcells, _ ) =
-            Stemcells.init
+            Stemcells.init endpoint
 
         ( activities, cmd ) =
-            Activities.init
+            Activities.init endpoint
 
         layoutCmd =
             Layout.sub0 Mdl
@@ -178,6 +178,7 @@ view model =
         }
 
 
+tabsView : ( List (Html a), List (Options.Property () a) )
 tabsView =
     ( [ text "Activities"
       , text "VMs"
@@ -187,6 +188,7 @@ tabsView =
     )
 
 
+mainView : Model -> Html Msg
 mainView model =
     case model.tab of
         0 ->

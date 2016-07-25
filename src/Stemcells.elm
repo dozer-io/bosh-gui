@@ -10,12 +10,13 @@ import Material.Progress as Loading
 import Material
 import Platform.Cmd exposing (Cmd)
 import Task
+import Erl
 
 
 main : Program Never
 main =
     App.program
-        { init = init
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -29,6 +30,7 @@ main =
 type alias Model =
     { stemcells : List Stemcell
     , loading : Bool
+    , endpoint : String
     , mdl : Material.Model
     }
 
@@ -39,9 +41,9 @@ type alias Stemcell =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] True Material.model, getStemcells )
+init : String -> ( Model, Cmd Msg )
+init endpoint =
+    ( Model [] True endpoint Material.model, getStemcells endpoint )
 
 
 
@@ -59,7 +61,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GetStemcells ->
-            ( model, getStemcells )
+            ( model, getStemcells model.endpoint )
 
         GetSucceed stemcells ->
             ( { model | stemcells = stemcells, loading = False }, Cmd.none )
@@ -108,11 +110,13 @@ subscriptions model =
 -- HTTP
 
 
-getStemcells : Cmd Msg
-getStemcells =
+getStemcells : String -> Cmd Msg
+getStemcells endpoint =
     let
         url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/stemcells"
+            Erl.parse endpoint
+                |> Erl.appendPathSegments [ "stemcells" ]
+                |> Erl.toString
     in
         Task.perform GetFail
             GetSucceed

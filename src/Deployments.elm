@@ -2,10 +2,6 @@ module Deployments exposing (..)
 
 import Html exposing (..)
 import Html.App as App
-
-
--- import TimeTravel.Html.App as TimeTravel
-
 import Http
 import Json.Decode exposing (..)
 import List exposing (map)
@@ -13,12 +9,13 @@ import List.Extra exposing (getAt, setAt)
 import Platform.Cmd exposing (Cmd)
 import Task
 import VMs
+import Erl
 
 
 main : Program Never
 main =
     App.program
-        { init = init
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -32,6 +29,7 @@ main =
 type alias Model =
     { deployments : List VMs.Model
     , loading : Bool
+    , endpoint : String
     }
 
 
@@ -39,9 +37,9 @@ type alias Deployment =
     String
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] True, getDeployments )
+init : String -> ( Model, Cmd Msg )
+init endpoint =
+    ( Model [] True endpoint, getDeployments endpoint )
 
 
 
@@ -59,7 +57,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         GetDeployments ->
-            ( model, getDeployments )
+            ( model, getDeployments model.endpoint )
 
         GetDeploymentsFail _ ->
             ( model, Cmd.none )
@@ -69,7 +67,7 @@ update action model =
                 createVMs id deployment =
                     let
                         ( vms, cmds ) =
-                            VMs.init deployment
+                            VMs.init model.endpoint deployment
                     in
                         ( vms, Cmd.map (SubMsg id) cmds )
 
@@ -131,11 +129,13 @@ subscriptions model =
 -- HTTP
 
 
-getDeployments : Cmd Msg
-getDeployments =
+getDeployments : String -> Cmd Msg
+getDeployments endpoint =
     let
         url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/deployments"
+            Erl.parse endpoint
+                |> Erl.appendPathSegments [ "deployments" ]
+                |> Erl.toString
     in
         Task.perform GetDeploymentsFail GetDeploymentsSucceed
             <| Http.get decodeDeployments url

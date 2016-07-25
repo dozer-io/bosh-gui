@@ -151,6 +151,7 @@ view model =
         Layout.render Mdl
             model.mdl
             [ Layout.fixedTabs
+            , Layout.fixedHeader
             , Layout.selectedTab
                 <| case getAt selected directors of
                     Nothing ->

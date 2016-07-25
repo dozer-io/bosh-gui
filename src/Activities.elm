@@ -16,13 +16,14 @@ import Platform.Cmd exposing (Cmd)
 import Task
 import Activity
 import TaskEventOutput
+import Erl
 
 
 main : Program Never
 main =
     --    App.program
     TimeTravel.program
-        { init = init
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -37,12 +38,13 @@ type alias Model =
     { activities : List Activity.Model
     , taskEventOutput : Maybe TaskEventOutput.Model
     , loading : Bool
+    , endpoint : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] Nothing True, getActivities )
+init : String -> ( Model, Cmd Msg )
+init endpoint =
+    ( Model [] Nothing True endpoint, getActivities endpoint )
 
 
 
@@ -61,7 +63,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         GetActivities ->
-            ( model, getActivities )
+            ( model, getActivities model.endpoint )
 
         GetActivitiesFail _ ->
             ( model, Cmd.none )
@@ -95,7 +97,7 @@ update action model =
                             Just selectedActivity ->
                                 let
                                     ( taskEventOutput, taskEventOutputCmd ) =
-                                        TaskEventOutput.init selectedActivity.activity.id
+                                        TaskEventOutput.init model.endpoint selectedActivity.activity.id
                                 in
                                     ( { model
                                         | activities = activities
@@ -201,11 +203,15 @@ subscriptions model =
 -- HTTP
 
 
-getActivities : Cmd Msg
-getActivities =
+getActivities : String -> Cmd Msg
+getActivities endpoint =
     let
         url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/tasks?limit=20&verbose=0"
+            Erl.parse endpoint
+                |> Erl.appendPathSegments [ "tasks" ]
+                |> Erl.addQuery "limit" "20"
+                |> Erl.addQuery "verbose" "0"
+                |> Erl.toString
     in
         Task.perform GetActivitiesFail GetActivitiesSucceed
             <| Http.get decodeActivities url
