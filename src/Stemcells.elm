@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Stemcells exposing (..)
 
 import Html exposing (..)
 import Html.App as App
@@ -6,20 +6,17 @@ import Html.Attributes exposing (..)
 import Http
 import Json.Decode exposing (..)
 import List exposing (map)
+import Material.Progress as Loading
 import Material
 import Platform.Cmd exposing (Cmd)
 import Task
-
-
--- import Material.Scheme
--- import Material.Button as Button
--- import Material.Options exposing (css)
+import Erl
 
 
 main : Program Never
 main =
     App.program
-        { init = init
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000"
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -32,6 +29,8 @@ main =
 
 type alias Model =
     { stemcells : List Stemcell
+    , loading : Bool
+    , endpoint : String
     , mdl : Material.Model
     }
 
@@ -42,9 +41,9 @@ type alias Stemcell =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] Material.model, fetchStemcells )
+init : String -> ( Model, Cmd Msg )
+init endpoint =
+    ( Model [] True endpoint Material.model, getStemcells endpoint )
 
 
 
@@ -52,27 +51,26 @@ init =
 
 
 type Msg
-    = FetchStemcells
-    | FetchSucceed (List Stemcell)
-    | FetchFail Http.Error
-    | MDL Material.Msg
+    = GetStemcells
+    | GetSucceed (List Stemcell)
+    | GetFail Http.Error
+    | Mdl (Material.Msg Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action model =
-    case action of
-        FetchStemcells ->
-            ( model, fetchStemcells )
+update msg model =
+    case msg of
+        GetStemcells ->
+            ( model, getStemcells model.endpoint )
 
-        FetchSucceed stemcells ->
-            ( { model | stemcells = stemcells }, Cmd.none )
+        GetSucceed stemcells ->
+            ( { model | stemcells = stemcells, loading = False }, Cmd.none )
 
-        FetchFail _ ->
+        GetFail _ ->
             ( model, Cmd.none )
 
-        MDL action' ->
-            Material.update MDL action' model
-
+        Mdl message' ->
+            Material.update message' model
 
 
 -- VIEW
@@ -85,8 +83,11 @@ type alias Mdl =
 view : Model -> Html Msg
 view model =
     div []
-        [ ul [ attribute "class" "mdl-list" ]
-            (List.map stemcellListItem model.stemcells)
+        [ if model.loading then
+            Loading.indeterminate
+          else
+            ul [ attribute "class" "mdl-list" ]
+                (List.map stemcellListItem model.stemcells)
         ]
 
 
@@ -108,14 +109,16 @@ subscriptions model =
 -- HTTP
 
 
-fetchStemcells : Cmd Msg
-fetchStemcells =
+getStemcells : String -> Cmd Msg
+getStemcells endpoint =
     let
         url =
-            "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000/stemcells"
+            Erl.parse endpoint
+                |> Erl.appendPathSegments [ "stemcells" ]
+                |> Erl.toString
     in
-        Task.perform FetchFail
-            FetchSucceed
+        Task.perform GetFail
+            GetSucceed
             (Http.get decodeStemcells url)
 
 
