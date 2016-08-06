@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Html exposing (..)
 import Html.App as App
+import TimeTravel.Html.App as TimeTravel
 import Http
 import Json.Decode exposing (..)
 import List exposing (map)
@@ -13,7 +14,8 @@ import VMs
 
 main : Program Never
 main =
-    App.program
+    TimeTravel.program
+        --    App.program
         { init = init
         , view = view
         , update = update
