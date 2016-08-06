@@ -54,7 +54,7 @@ type Msg
     = GetStemcells
     | GetSucceed (List Stemcell)
     | GetFail Http.Error
-    | MDL Material.Msg
+    | Mdl (Material.Msg Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,9 +69,8 @@ update msg model =
         GetFail _ ->
             ( model, Cmd.none )
 
-        MDL msg ->
-            Material.update MDL msg model
-
+        Mdl message' ->
+            Material.update message' model
 
 
 -- VIEW

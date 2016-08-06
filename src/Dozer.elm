@@ -80,7 +80,7 @@ init =
 
 type Msg
     = SelectDirector Int
-    | Mdl Material.Msg
+    | Mdl (Material.Msg Msg)
     | GetDirectorsSucceed (List Director)
     | GetDirectorsFail Http.Error
     | SubMsg Int Bosh.Msg
@@ -92,8 +92,8 @@ update msg model =
         SelectDirector id ->
             ( { model | selectedDirector = Just id }, Cmd.none )
 
-        Mdl msg ->
-            Material.update Mdl msg model
+        Mdl message' ->
+            Material.update message' model
 
         GetDirectorsFail _ ->
             ( model, Cmd.none )

@@ -86,7 +86,7 @@ init activity =
 
 
 type Msg
-    = Mdl Material.Msg
+    = Mdl (Material.Msg Msg)
     | Tick Time.Time
     | Select
     | DeSelect
@@ -95,8 +95,8 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Mdl msg ->
-            Material.update Mdl msg model
+        Mdl message' ->
+            Material.update message' model
 
         Tick now ->
             ( { model | now = now }, Cmd.none )

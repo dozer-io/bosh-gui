@@ -81,7 +81,7 @@ init endpoint =
 
 type Msg
     = SelectTab Int
-    | Mdl Material.Msg
+    | Mdl (Material.Msg Msg)
     | DeploymentsMsg Deployments.Msg
     | ActivitiesMsg Activities.Msg
     | StemcellsMsg Stemcells.Msg
@@ -152,8 +152,8 @@ update msg model =
             in
                 ( { model | activities = activities }, Cmd.map (ActivitiesMsg) cmd )
 
-        Mdl msg ->
-            Material.update Mdl msg model
+        Mdl message' ->
+            Material.update message' model
 
 
 
