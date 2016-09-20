@@ -70,8 +70,11 @@ onEffects :
 onEffects router cmds subs state =
     case state.token of
         Nothing ->
-            Platform.sendToSelf router AuthRequired
-                `endWith` { state | subs = subs, queue = state.queue ++ cmds }
+            if List.isEmpty cmds then
+                Task.succeed { state | subs = subs }
+            else
+                Platform.sendToSelf router AuthRequired
+                    `endWith` { state | subs = subs, queue = state.queue ++ cmds }
 
         Just _ ->
             (Task.sequence
