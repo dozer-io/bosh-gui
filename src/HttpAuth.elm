@@ -1,4 +1,4 @@
-effect module HttpAuth where { command = MyCmd } exposing (send)
+effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authRequests)
 
 -- import Dict
 
@@ -7,7 +7,7 @@ import Task
 import Process
 
 
--- import Debug
+-- COMMANDS
 
 
 type MyCmd msg
@@ -24,26 +24,63 @@ cmdMap f (Send request errorTagger responseTagger) =
     Send request (errorTagger >> f) (responseTagger >> f)
 
 
-type alias State =
-    String
+
+-- SUBSCRIPTIONS
 
 
-init : Task.Task Never State
+type MySub msg
+    = AuthRequest (String -> msg)
+
+
+authRequests : (String -> a) -> Sub a
+authRequests tagger =
+    subscription (AuthRequest tagger)
+
+
+subMap : (a -> b) -> MySub a -> MySub b
+subMap func sub =
+    case sub of
+        AuthRequest tagger ->
+            AuthRequest (tagger >> func)
+
+
+
+-- MANAGER
+
+
+type alias State msg =
+    { token :
+        String
+        -- , queue : List SelfMsg
+    , subs : List (MySub msg)
+    }
+
+
+init : Task.Task Never (State msg)
 init =
-    Task.succeed "foobar"
+    Task.succeed <| State "foobar" []
 
 
-onEffects : Platform.Router msg (SelfMsg msg) -> List (MyCmd msg) -> State -> Task.Task Never State
-onEffects router cmds state =
+onEffects :
+    Platform.Router msg (SelfMsg msg)
+    -> List (MyCmd msg)
+    -> List (MySub msg)
+    -> State msg
+    -> Task.Task Never (State msg)
+onEffects router cmds subs state =
     (Task.sequence <| List.map (RunCmd >> Platform.sendToSelf router) cmds)
-        `endWith` state
+        `endWith` { state | subs = state.subs ++ subs }
 
 
 type SelfMsg msg
     = RunCmd (MyCmd msg)
 
 
-onSelfMsg : Platform.Router msg (SelfMsg msg) -> SelfMsg msg -> State -> Task.Task Never State
+onSelfMsg :
+    Platform.Router msg (SelfMsg msg)
+    -> SelfMsg msg
+    -> State msg
+    -> Task.Task Never (State msg)
 onSelfMsg router selfMsg state =
     let
         toApp =
@@ -61,7 +98,7 @@ onSelfMsg router selfMsg state =
                     Process.spawn
                         <| Task.toResult
                             (Http.send Http.defaultSettings
-                                { request | headers = [ ( "Authorization", state ) ] }
+                                { request | headers = [ ( "Authorization", state.token ) ] }
                             )
                         `Task.andThen` \response ->
                                         case response of
