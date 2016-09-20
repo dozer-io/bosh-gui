@@ -11,10 +11,11 @@ import Material.Icon as Icon
 import Time exposing (Time, second)
 import Html.App as App
 import TimeTravel.Html.App as TimeTravel
+import HttpAuth
 import Http
 import List.Extra exposing (getAt, setAt)
 import Task
-import Json.Decode exposing (string, list, null, succeed, oneOf, map, Decoder, customDecoder)
+import Json.Decode exposing (string, list, null, succeed, oneOf, map, Decoder, customDecoder, decodeString)
 import Json.Decode.Pipeline exposing (decode, required)
 import Date
 
@@ -81,8 +82,8 @@ init =
 type Msg
     = SelectDirector Int
     | Mdl (Material.Msg Msg)
-    | GetDirectorsSucceed (List Director)
-    | GetDirectorsFail Http.Error
+    | GetDirectorsSucceed Http.Response
+    | GetDirectorsFail Http.RawError
     | SubMsg Int Bosh.Msg
 
 
@@ -98,8 +99,17 @@ update msg model =
         GetDirectorsFail _ ->
             ( model, Cmd.none )
 
-        GetDirectorsSucceed directors ->
+        GetDirectorsSucceed response ->
             let
+                directors =
+                    case response.value of
+                        Http.Text string ->
+                            Result.withDefault []
+                                <| decodeString decodeDirectors string
+
+                        Http.Blob _ ->
+                            []
+
                 toTuple id director =
                     let
                         ( model, cmd ) =
@@ -254,7 +264,12 @@ getDirectors =
         url =
             "http://localhost:8001/dozer/directors"
     in
-        Task.perform GetDirectorsFail GetDirectorsSucceed <| Http.get decodeDirectors url
+        -- Task.perform GetDirectorsFail
+        --     GetDirectorsSucceed
+        (HttpAuth.send (Http.Request "GET" [] url Http.empty)
+            (GetDirectorsFail)
+            (GetDirectorsSucceed)
+        )
 
 
 decodeDirectors : Decoder (List Director)

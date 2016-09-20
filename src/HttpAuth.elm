@@ -7,6 +7,9 @@ import Task
 import Process
 
 
+-- import Debug
+
+
 type MyCmd msg
     = Send Http.Request (Http.RawError -> msg) (Http.Response -> msg)
 
