@@ -19,9 +19,9 @@ send request errorTagger responseTagger =
     command (Send request errorTagger responseTagger)
 
 
-cmdMap : (a -> b) -> (a -> b) -> MyCmd a -> MyCmd b
-cmdMap f g (Send request errorTagger responseTagger) =
-    Send request (errorTagger >> f) (responseTagger >> g)
+cmdMap : (a -> b) -> MyCmd a -> MyCmd b
+cmdMap f (Send request errorTagger responseTagger) =
+    Send request (errorTagger >> f) (responseTagger >> f)
 
 
 type alias State =
