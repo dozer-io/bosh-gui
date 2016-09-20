@@ -50,15 +50,15 @@ subMap func sub =
 
 type alias State msg =
     { token :
-        String
-        -- , queue : List SelfMsg
+        Maybe String
+    , queue : List (MyCmd msg)
     , subs : List (MySub msg)
     }
 
 
 init : Task.Task Never (State msg)
 init =
-    Task.succeed <| State "foobar" []
+    Task.succeed <| State Nothing [] []
 
 
 onEffects :
@@ -68,12 +68,23 @@ onEffects :
     -> State msg
     -> Task.Task Never (State msg)
 onEffects router cmds subs state =
-    (Task.sequence <| List.map (RunCmd >> Platform.sendToSelf router) cmds)
-        `endWith` { state | subs = state.subs ++ subs }
+    case state.token of
+        Nothing ->
+            Platform.sendToSelf router AuthRequired
+                `endWith` { state | subs = subs, queue = state.queue ++ cmds }
+
+        Just _ ->
+            (Task.sequence
+                <| List.map (RunCmd >> Platform.sendToSelf router)
+                <| cmds
+                ++ state.queue
+            )
+                `endWith` { state | subs = subs, queue = [] }
 
 
 type SelfMsg msg
     = RunCmd (MyCmd msg)
+    | AuthRequired
 
 
 onSelfMsg :
@@ -98,7 +109,7 @@ onSelfMsg router selfMsg state =
                     Process.spawn
                         <| Task.toResult
                             (Http.send Http.defaultSettings
-                                { request | headers = [ ( "Authorization", state.token ) ] }
+                                { request | headers = [ ( "Authorization", Maybe.withDefault "" state.token ) ] }
                             )
                         `Task.andThen` \response ->
                                         case response of
@@ -111,6 +122,18 @@ onSelfMsg router selfMsg state =
         case selfMsg of
             RunCmd cmd ->
                 runCmd cmd
+                    `Task.andThen` \_ -> Task.succeed state
+
+            AuthRequired ->
+                Task.sequence
+                    (List.map
+                        (\mySub ->
+                            case mySub of
+                                AuthRequest tagger ->
+                                    toApp (tagger "please login")
+                        )
+                        state.subs
+                    )
                     `Task.andThen` \_ -> Task.succeed state
 
 
