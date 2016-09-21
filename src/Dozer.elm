@@ -11,24 +11,32 @@ import Material.Color as Color exposing (background, white, primary, color, Hue(
 import Material.Icon as Icon
 import Time exposing (Time, second)
 import Html.App as App
-import TimeTravel.Html.App as TimeTravel
+import TimeTravel.Navigation as TimeTravel
 import HttpAuth
 import Http
 import List.Extra exposing (getAt, setAt)
 import Json.Decode exposing (string, list, null, succeed, oneOf, map, Decoder, customDecoder, decodeString)
 import Json.Decode.Pipeline exposing (decode, required)
 import Date
+import Task
+import OAuth
 
 
 main : Program Never
 main =
-    -- App.program
-    TimeTravel.program
+    -- Navigation.program
+    TimeTravel.program (HttpAuth.urlParser)
         { init = init
         , view = view
         , update = update
+        , urlUpdate = urlUpdate
         , subscriptions = subscriptions
         }
+
+
+urlUpdate : Task.Task String OAuth.Token -> Model -> ( Model, Cmd a )
+urlUpdate task model =
+    ( model, HttpAuth.setToken task )
 
 
 
@@ -75,14 +83,14 @@ type alias Model =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Task.Task String OAuth.Token -> ( Model, Cmd Msg )
+init task =
     ( { mdl = Material.model
       , authUrl = Nothing
       , selectedDirector = Nothing
       , directors = Nothing
       }
-    , getDirectors
+    , Cmd.batch [ getDirectors, HttpAuth.setToken task ]
     )
 
 

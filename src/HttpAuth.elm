@@ -1,9 +1,10 @@
-effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authRequests)
+effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authRequests, urlParser, setToken)
 
 import Http
 import Task
 import Process
 import OAuth
+import Navigation
 
 
 -- COMMANDS
@@ -11,6 +12,7 @@ import OAuth
 
 type MyCmd msg
     = Send Http.Request (Http.RawError -> msg) (Http.Response -> msg)
+    | TokenTask (Task.Task String OAuth.Token)
 
 
 send : Http.Request -> (Http.RawError -> a) -> (Http.Response -> a) -> Cmd a
@@ -18,9 +20,19 @@ send request errorTagger responseTagger =
     command (Send request errorTagger responseTagger)
 
 
+setToken : Task.Task String OAuth.Token -> Cmd msg
+setToken task =
+    command (TokenTask task)
+
+
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
-cmdMap f (Send request errorTagger responseTagger) =
-    Send request (errorTagger >> f) (responseTagger >> f)
+cmdMap f cmd =
+    case cmd of
+        Send request errorTagger responseTagger ->
+            Send request (errorTagger >> f) (responseTagger >> f)
+
+        TokenTask task ->
+            TokenTask task
 
 
 
@@ -48,8 +60,7 @@ subMap func sub =
 
 
 type alias State msg =
-    { token :
-        Maybe String
+    { token : Maybe String
     , queue : List (MyCmd msg)
     , subs : List (MySub msg)
     }
@@ -87,6 +98,7 @@ onEffects router cmds subs state =
 type SelfMsg msg
     = RunCmd (MyCmd msg)
     | AuthRequired
+    | SetToken OAuth.Token
 
 
 onSelfMsg :
@@ -120,8 +132,22 @@ onSelfMsg router selfMsg state =
 
                                             Err rawError ->
                                                 toApp (errorTagger rawError)
+
+                TokenTask task ->
+                    Process.spawn
+                        <| Task.toResult task
+                        `Task.andThen` \result ->
+                                        case result of
+                                            Ok token ->
+                                                toSelf (SetToken token)
+
+                                            Err _ ->
+                                                noop
     in
         case selfMsg of
+            SetToken (OAuth.Validated token) ->
+                Task.succeed { state | token = Just token }
+
             RunCmd cmd ->
                 runCmd cmd
                     `Task.andThen` \_ -> Task.succeed state
@@ -157,3 +183,8 @@ uaaAuthClient =
         , scopes = [ "dozer_api.user", "bosh_api.user" ]
         , redirectUrl = "http://localhost:8080"
         }
+
+
+urlParser : Navigation.Parser (Task.Task String OAuth.Token)
+urlParser =
+    OAuth.urlParser uaaAuthClient
