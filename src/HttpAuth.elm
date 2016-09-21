@@ -1,10 +1,9 @@
 effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authRequests)
 
--- import Dict
-
 import Http
 import Task
 import Process
+import OAuth
 
 
 -- COMMANDS
@@ -133,7 +132,10 @@ onSelfMsg router selfMsg state =
                         (\mySub ->
                             case mySub of
                                 AuthRequest tagger ->
-                                    toApp (tagger "please login")
+                                    toApp
+                                        (tagger
+                                            <| OAuth.buildAuthUrl uaaAuthClient
+                                        )
                         )
                         state.subs
                     )
@@ -143,3 +145,15 @@ onSelfMsg router selfMsg state =
 endWith : Task.Task a b -> output -> Task.Task a output
 endWith task output =
     Task.map (\_ -> output) task
+
+
+uaaAuthClient : OAuth.Client
+uaaAuthClient =
+    OAuth.newClient
+        { endpointUrl = "http://localhost:8001/login/authorize"
+        , validateUrl = ""
+        }
+        { clientId = "dozer-web"
+        , scopes = [ "dozer_api.user", "bosh_api.user" ]
+        , redirectUrl = "http://localhost:8080"
+        }

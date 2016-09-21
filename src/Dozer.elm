@@ -2,6 +2,7 @@ module Dozer exposing (..)
 
 import Platform.Cmd exposing (Cmd, none)
 import Html exposing (..)
+import Html.Attributes exposing (href)
 import Bosh
 import Material
 import Material.Layout as Layout
@@ -174,7 +175,10 @@ view model =
     in
         case model.authUrl of
             Just url ->
-                div [] [ text url ]
+                div []
+                    [ text "Please login "
+                    , a [ href url ] [ text "click here" ]
+                    ]
 
             Nothing ->
                 Layout.render Mdl
