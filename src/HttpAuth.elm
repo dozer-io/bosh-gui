@@ -78,21 +78,39 @@ onEffects :
     -> State msg
     -> Task.Task Never (State msg)
 onEffects router cmds subs state =
-    case state.token of
-        Nothing ->
-            if List.isEmpty cmds then
-                Task.succeed { state | subs = subs }
-            else
-                Platform.sendToSelf router AuthRequired
-                    `endWith` { state | subs = subs, queue = state.queue ++ cmds }
+    let
+        ( queableCmds, nonQueableCmds ) =
+            List.partition
+                (\x ->
+                    case x of
+                        Send _ _ _ ->
+                            True
 
-        Just _ ->
-            (Task.sequence
-                <| List.map (RunCmd >> Platform.sendToSelf router)
-                <| cmds
-                ++ state.queue
-            )
-                `endWith` { state | subs = subs, queue = [] }
+                        _ ->
+                            False
+                )
+                cmds
+
+        runCmds runnableCmds =
+            List.map (RunCmd >> toSelf) runnableCmds
+
+        toSelf =
+            Platform.sendToSelf router
+
+        ( cmds', queue ) =
+            case state.token of
+                Nothing ->
+                    if List.isEmpty queableCmds then
+                        ( runCmds nonQueableCmds, state.queue )
+                    else
+                        ( (runCmds nonQueableCmds) ++ [ toSelf AuthRequired ]
+                        , state.queue ++ queableCmds
+                        )
+
+                Just _ ->
+                    ( runCmds <| nonQueableCmds ++ queableCmds ++ state.queue, [] )
+    in
+        Task.sequence cmds' `endWith` { state | subs = subs, queue = queue }
 
 
 type SelfMsg msg
