@@ -5,6 +5,7 @@ import Task
 import Process
 import OAuth
 import Navigation
+import String
 
 
 -- COMMANDS
@@ -174,8 +175,11 @@ onSelfMsg router selfMsg state =
     in
         case selfMsg of
             SetToken (OAuth.Validated token) ->
-                (notifyAuthUrlChangeTasks Nothing)
-                    `Task.andThen` \_ -> Task.succeed { state | token = Just token }
+                if String.isEmpty token then
+                    Task.succeed state
+                else
+                    (notifyAuthUrlChangeTasks Nothing)
+                        `Task.andThen` \_ -> Task.succeed { state | token = Just (Debug.log "token" token) }
 
             RunCmd cmd ->
                 runCmd cmd
