@@ -1,4 +1,4 @@
-effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authRequests, urlParser, setToken)
+effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authUrl, urlParser, setToken)
 
 import Http
 import Task
@@ -40,19 +40,19 @@ cmdMap f cmd =
 
 
 type MySub msg
-    = AuthRequest (String -> msg)
+    = AuthUrl (Maybe String -> msg)
 
 
-authRequests : (String -> a) -> Sub a
-authRequests tagger =
-    subscription (AuthRequest tagger)
+authUrl : (Maybe String -> a) -> Sub a
+authUrl tagger =
+    subscription (AuthUrl tagger)
 
 
 subMap : (a -> b) -> MySub a -> MySub b
 subMap func sub =
     case sub of
-        AuthRequest tagger ->
-            AuthRequest (tagger >> func)
+        AuthUrl tagger ->
+            AuthUrl (tagger >> func)
 
 
 
@@ -135,6 +135,16 @@ onSelfMsg router selfMsg state =
         noop =
             Task.succeed ()
 
+        notifyAuthUrlChangeTasks url =
+            Task.sequence
+                <| List.map
+                    (\mySub ->
+                        case mySub of
+                            AuthUrl tagger ->
+                                toApp (tagger url)
+                    )
+                    state.subs
+
         runCmd cmd =
             case cmd of
                 Send request errorTagger responseTagger ->
@@ -164,25 +174,18 @@ onSelfMsg router selfMsg state =
     in
         case selfMsg of
             SetToken (OAuth.Validated token) ->
-                Task.succeed { state | token = Just token }
+                (notifyAuthUrlChangeTasks Nothing)
+                    `Task.andThen` \_ -> Task.succeed { state | token = Just token }
 
             RunCmd cmd ->
                 runCmd cmd
                     `Task.andThen` \_ -> Task.succeed state
 
             AuthRequired ->
-                Task.sequence
-                    (List.map
-                        (\mySub ->
-                            case mySub of
-                                AuthRequest tagger ->
-                                    toApp
-                                        (tagger
-                                            <| OAuth.buildAuthUrl uaaAuthClient
-                                        )
-                        )
-                        state.subs
-                    )
+                (notifyAuthUrlChangeTasks
+                    <| Just
+                    <| OAuth.buildAuthUrl uaaAuthClient
+                )
                     `Task.andThen` \_ -> Task.succeed state
 
 

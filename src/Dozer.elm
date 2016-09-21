@@ -46,7 +46,7 @@ urlUpdate task model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ HttpAuth.authRequests AuthRequired
+        [ HttpAuth.authUrl AuthUrl
         ]
 
 
@@ -104,14 +104,14 @@ type Msg
     | GetDirectorsSucceed Http.Response
     | GetDirectorsFail Http.RawError
     | SubMsg Int Bosh.Msg
-    | AuthRequired String
+    | AuthUrl (Maybe String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AuthRequired authUrl ->
-            ( { model | authUrl = Just authUrl }, Cmd.none )
+        AuthUrl authUrl ->
+            ( { model | authUrl = authUrl }, Cmd.none )
 
         SelectDirector id ->
             ( { model | selectedDirector = Just id }, Cmd.none )
