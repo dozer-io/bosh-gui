@@ -244,7 +244,7 @@ uaaAuthClient config =
         { endpointUrl = config.authUrl
         , validateUrl = ""
         }
-        { clientId = "dozer-web"
+        { clientId = "dozer-web-beta"
         , scopes = [ "dozer_api.user", "bosh_api.user" ]
         , redirectUrl = config.appUrl
         }
