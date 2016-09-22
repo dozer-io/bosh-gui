@@ -5,7 +5,7 @@ if (process.env.NODE_ENV == 'production') {
   Elm.Dozer.fullscreen({
     apiUrl : "https://api.dozer.io",
     authUrl : "https://login.dozer.io/oauth/authorize",
-    appUrl : "https://console-elm.dozer.io"
+    appUrl : "https://beta-console.dozer.io"
   });
 } else {
   Elm.Dozer.fullscreen({
