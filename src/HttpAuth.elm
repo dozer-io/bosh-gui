@@ -169,7 +169,13 @@ onSelfMsg router selfMsg state =
                     Process.spawn
                         <| Task.toResult
                             (Http.send Http.defaultSettings
-                                { request | headers = [ ( "Authorization", Maybe.withDefault "" state.token ) ] }
+                                { request
+                                    | headers =
+                                        [ ( "Authorization"
+                                          , "bearer " ++ (Maybe.withDefault "" state.token)
+                                          )
+                                        ]
+                                }
                             )
                         `Task.andThen` \response ->
                                         case response of
