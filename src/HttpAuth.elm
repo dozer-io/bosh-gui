@@ -1,4 +1,4 @@
-effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authUrl, urlParser, setToken)
+effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authUrl, urlParser, setToken, configure, Config)
 
 import Http
 import Task
@@ -6,6 +6,7 @@ import Process
 import OAuth
 import Navigation
 import String
+import Dict
 
 
 -- COMMANDS
@@ -14,6 +15,7 @@ import String
 type MyCmd msg
     = Send Http.Request (Http.RawError -> msg) (Http.Response -> msg)
     | TokenTask (Task.Task String OAuth.Token)
+    | Configure Config
 
 
 send : Http.Request -> (Http.RawError -> a) -> (Http.Response -> a) -> Cmd a
@@ -26,6 +28,11 @@ setToken task =
     command (TokenTask task)
 
 
+configure : Config -> Cmd msg
+configure config =
+    command (Configure config)
+
+
 cmdMap : (a -> b) -> MyCmd a -> MyCmd b
 cmdMap f cmd =
     case cmd of
@@ -34,6 +41,9 @@ cmdMap f cmd =
 
         TokenTask task ->
             TokenTask task
+
+        Configure config ->
+            Configure config
 
 
 
@@ -64,12 +74,17 @@ type alias State msg =
     { token : Maybe String
     , queue : List (MyCmd msg)
     , subs : List (MySub msg)
+    , config : Maybe Config
     }
+
+
+type alias Config =
+    { authUrl : String, appUrl : String }
 
 
 init : Task.Task Never (State msg)
 init =
-    Task.succeed <| State Nothing [] []
+    Task.succeed <| State Nothing [] [] Nothing
 
 
 onEffects :
@@ -104,7 +119,8 @@ onEffects router cmds subs state =
                     if List.isEmpty queableCmds then
                         ( runCmds nonQueableCmds, state.queue )
                     else
-                        ( (runCmds nonQueableCmds) ++ [ toSelf AuthRequired ]
+                        ( [ toSelf AuthRequired ]
+                            ++ (runCmds nonQueableCmds)
                         , state.queue ++ queableCmds
                         )
 
@@ -118,6 +134,7 @@ type SelfMsg msg
     = RunCmd (MyCmd msg)
     | AuthRequired
     | SetToken OAuth.Token
+    | SetConfig Config
 
 
 onSelfMsg :
@@ -172,6 +189,11 @@ onSelfMsg router selfMsg state =
 
                                             Err _ ->
                                                 noop
+
+                Configure config ->
+                    Process.spawn
+                        <| toSelf
+                        <| SetConfig config
     in
         case selfMsg of
             SetToken (OAuth.Validated token) ->
@@ -179,18 +201,36 @@ onSelfMsg router selfMsg state =
                     Task.succeed state
                 else
                     (notifyAuthUrlChangeTasks Nothing)
-                        `Task.andThen` \_ -> Task.succeed { state | token = Just (Debug.log "token" token) }
+                        `Task.andThen` \_ -> Task.succeed { state | token = Just token }
 
             RunCmd cmd ->
                 runCmd cmd
                     `Task.andThen` \_ -> Task.succeed state
 
             AuthRequired ->
-                (notifyAuthUrlChangeTasks
-                    <| Just
-                    <| OAuth.buildAuthUrl uaaAuthClient
-                )
-                    `Task.andThen` \_ -> Task.succeed state
+                case state.config of
+                    Nothing ->
+                        toSelf AuthRequired
+                            `Task.andThen` \_ -> Task.succeed state
+
+                    Just config ->
+                        let
+                            task =
+                                case state.token of
+                                    Nothing ->
+                                        (notifyAuthUrlChangeTasks
+                                            <| Just
+                                            <| OAuth.buildAuthUrl
+                                            <| uaaAuthClient config
+                                        )
+
+                                    Just _ ->
+                                        notifyAuthUrlChangeTasks Nothing
+                        in
+                            task `Task.andThen` \_ -> Task.succeed state
+
+            SetConfig config ->
+                Task.succeed { state | config = Just config }
 
 
 endWith : Task.Task a b -> output -> Task.Task a output
@@ -198,18 +238,56 @@ endWith task output =
     Task.map (\_ -> output) task
 
 
-uaaAuthClient : OAuth.Client
-uaaAuthClient =
+uaaAuthClient : Config -> OAuth.Client
+uaaAuthClient config =
     OAuth.newClient
-        { endpointUrl = "http://localhost:8001/login/authorize"
+        { endpointUrl = config.authUrl
         , validateUrl = ""
         }
         { clientId = "dozer-web"
         , scopes = [ "dozer_api.user", "bosh_api.user" ]
-        , redirectUrl = "http://localhost:8080"
+        , redirectUrl = config.appUrl
         }
 
 
 urlParser : Navigation.Parser (Task.Task String OAuth.Token)
 urlParser =
-    OAuth.urlParser uaaAuthClient
+    Navigation.makeParser (.hash >> getTokenFromHash >> validateToken)
+
+
+getTokenFromHash : String -> String
+getTokenFromHash s =
+    let
+        params =
+            parseUrlParams s
+    in
+        Dict.get "access_token" params
+            |> Maybe.withDefault ""
+
+
+parseUrlParams : String -> Dict.Dict String String
+parseUrlParams s =
+    s
+        |> String.dropLeft 1
+        |> String.split "&"
+        |> List.map parseSingleParam
+        |> Dict.fromList
+
+
+parseSingleParam : String -> ( String, String )
+parseSingleParam p =
+    let
+        s =
+            String.split "=" p
+    in
+        case s of
+            [ s1, s2 ] ->
+                ( s1, s2 )
+
+            _ ->
+                ( "", "" )
+
+
+validateToken : String -> Task.Task String OAuth.Token
+validateToken token =
+    Task.succeed (OAuth.Validated token)

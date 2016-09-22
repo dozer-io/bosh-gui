@@ -11,7 +11,6 @@ import Material.Color as Color exposing (background, white, primary, color, Hue(
 import Material.Icon as Icon
 import Time exposing (Time, second)
 import Html.App as App
-import TimeTravel.Navigation as TimeTravel
 import HttpAuth
 import Http
 import List.Extra exposing (getAt, setAt)
@@ -20,12 +19,20 @@ import Json.Decode.Pipeline exposing (decode, required)
 import Date
 import Task
 import OAuth
+import Navigation
+import Erl
 
 
-main : Program Never
+type alias Flags =
+    { apiUrl : String
+    , authUrl : String
+    , appUrl : String
+    }
+
+
+main : Program Flags
 main =
-    -- Navigation.program
-    TimeTravel.program (HttpAuth.urlParser)
+    Navigation.programWithFlags (HttpAuth.urlParser)
         { init = init
         , view = view
         , update = update
@@ -80,17 +87,23 @@ type alias Model =
     , authUrl : Maybe String
     , selectedDirector : Maybe Int
     , directors : Maybe (List ( Director, Bosh.Model ))
+    , apiUrl : String
     }
 
 
-init : Task.Task String OAuth.Token -> ( Model, Cmd Msg )
-init task =
+init : Flags -> Task.Task String OAuth.Token -> ( Model, Cmd Msg )
+init flags task =
     ( { mdl = Material.model
       , authUrl = Nothing
       , selectedDirector = Nothing
       , directors = Nothing
+      , apiUrl = flags.apiUrl
       }
-    , Cmd.batch [ getDirectors, HttpAuth.setToken task ]
+    , Cmd.batch
+        [ HttpAuth.configure (HttpAuth.Config flags.authUrl flags.appUrl)
+        , HttpAuth.setToken task
+        , getDirectors flags.apiUrl
+        ]
     )
 
 
@@ -289,14 +302,14 @@ viewBosh id directors =
 -- HTTP
 
 
-getDirectors : Cmd Msg
-getDirectors =
+getDirectors : String -> Cmd Msg
+getDirectors appUrl =
     let
         url =
-            "http://localhost:8001/dozer/directors"
+            Erl.toString
+                <| Erl.appendPathSegments [ "directors" ]
+                <| Erl.parse appUrl
     in
-        -- Task.perform GetDirectorsFail
-        --     GetDirectorsSucceed
         (HttpAuth.send (Http.Request "GET" [] url Http.empty)
             (GetDirectorsFail)
             (GetDirectorsSucceed)
