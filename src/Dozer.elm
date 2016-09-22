@@ -2,6 +2,7 @@ module Dozer exposing (..)
 
 import Platform.Cmd exposing (Cmd, none)
 import Html exposing (..)
+import Html.Attributes exposing (href)
 import Bosh
 import Material
 import Material.Layout as Layout
@@ -10,26 +11,50 @@ import Material.Color as Color exposing (background, white, primary, color, Hue(
 import Material.Icon as Icon
 import Time exposing (Time, second)
 import Html.App as App
-import TimeTravel.Html.App as TimeTravel
+import HttpAuth
 import Http
 import List.Extra exposing (getAt, setAt)
-import Task
-import Json.Decode exposing (string, list, null, succeed, oneOf, map, Decoder, customDecoder)
+import Json.Decode exposing (string, list, null, succeed, oneOf, map, Decoder, customDecoder, decodeString)
 import Json.Decode.Pipeline exposing (decode, required)
 import Date
+import Task
+import OAuth
+import Navigation
+import Erl
 
 
-main : Program Never
+type alias Flags =
+    { apiUrl : String
+    , authUrl : String
+    , appUrl : String
+    }
+
+
+main : Program Flags
 main =
-    -- App.program
-    TimeTravel.program
+    Navigation.programWithFlags (HttpAuth.urlParser)
         { init = init
         , view = view
         , update = update
-        , subscriptions =
-            always Sub.none
-            -- (Layout.subs Mdl)
+        , urlUpdate = urlUpdate
+        , subscriptions = subscriptions
         }
+
+
+urlUpdate : Task.Task String OAuth.Token -> Model -> ( Model, Cmd a )
+urlUpdate task model =
+    ( model, HttpAuth.setToken task )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ HttpAuth.authUrl AuthUrl
+        ]
 
 
 
@@ -59,18 +84,26 @@ type alias Director =
 
 type alias Model =
     { mdl : Material.Model
+    , authUrl : Maybe String
     , selectedDirector : Maybe Int
     , directors : Maybe (List ( Director, Bosh.Model ))
+    , apiUrl : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Flags -> Task.Task String OAuth.Token -> ( Model, Cmd Msg )
+init flags task =
     ( { mdl = Material.model
+      , authUrl = Nothing
       , selectedDirector = Nothing
       , directors = Nothing
+      , apiUrl = flags.apiUrl
       }
-    , getDirectors
+    , Cmd.batch
+        [ HttpAuth.configure (HttpAuth.Config flags.authUrl flags.appUrl)
+        , HttpAuth.setToken task
+        , getDirectors flags.apiUrl
+        ]
     )
 
 
@@ -81,14 +114,18 @@ init =
 type Msg
     = SelectDirector Int
     | Mdl (Material.Msg Msg)
-    | GetDirectorsSucceed (List Director)
-    | GetDirectorsFail Http.Error
+    | GetDirectorsSucceed Http.Response
+    | GetDirectorsFail Http.RawError
     | SubMsg Int Bosh.Msg
+    | AuthUrl (Maybe String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        AuthUrl authUrl ->
+            ( { model | authUrl = authUrl }, Cmd.none )
+
         SelectDirector id ->
             ( { model | selectedDirector = Just id }, Cmd.none )
 
@@ -98,8 +135,17 @@ update msg model =
         GetDirectorsFail _ ->
             ( model, Cmd.none )
 
-        GetDirectorsSucceed directors ->
+        GetDirectorsSucceed response ->
             let
+                directors =
+                    case response.value of
+                        Http.Text string ->
+                            Result.withDefault []
+                                <| decodeString decodeDirectors string
+
+                        Http.Blob _ ->
+                            []
+
                 toTuple id director =
                     let
                         ( model, cmd ) =
@@ -148,67 +194,75 @@ view model =
         directors =
             model.directors |> Maybe.withDefault []
     in
-        Layout.render Mdl
-            model.mdl
-            [ Layout.fixedTabs
-            , Layout.fixedHeader
-            , Layout.selectedTab
-                <| case getAt selected directors of
-                    Nothing ->
-                        -1
-
-                    Just director ->
-                        (snd director).tab
-            , Layout.onSelectTab
-                (\id ->
-                    SubMsg selected (Bosh.SelectTab id)
-                )
-            ]
-            { header =
-                [ Layout.row []
-                    [ Layout.title []
-                        [ text
-                            <| case getAt selected directors of
-                                Nothing ->
-                                    ""
-
-                                Just director ->
-                                    (fst director).name
-                        ]
+        case model.authUrl of
+            Just url ->
+                div []
+                    [ text "Please login "
+                    , a [ href url ] [ text "click here" ]
                     ]
-                ]
-            , drawer =
-                [ case model.directors of
-                    Nothing ->
-                        div [] [ text "loading" ]
 
-                    Just directors ->
-                        styled ol [ cs "mdl-list" ]
-                            <| List.indexedMap (viewDirectorListItem selected)
-                            <| fst
-                            <| List.unzip directors
-                ]
-            , tabs =
-                case model.selectedDirector of
-                    Nothing ->
-                        ( [], [] )
+            Nothing ->
+                Layout.render Mdl
+                    model.mdl
+                    [ Layout.fixedTabs
+                    , Layout.fixedHeader
+                    , Layout.selectedTab
+                        <| case getAt selected directors of
+                            Nothing ->
+                                -1
 
-                    Just _ ->
-                        Bosh.tabsView
-            , main =
-                [ case model.directors of
-                    Nothing ->
-                        div [] [ text "loading" ]
+                            Just director ->
+                                (snd director).tab
+                    , Layout.onSelectTab
+                        (\id ->
+                            SubMsg selected (Bosh.SelectTab id)
+                        )
+                    ]
+                    { header =
+                        [ Layout.row []
+                            [ Layout.title []
+                                [ text
+                                    <| case getAt selected directors of
+                                        Nothing ->
+                                            ""
 
-                    Just directors ->
+                                        Just director ->
+                                            (fst director).name
+                                ]
+                            ]
+                        ]
+                    , drawer =
+                        [ case model.directors of
+                            Nothing ->
+                                div [] [ text "loading" ]
+
+                            Just directors ->
+                                styled ol [ cs "mdl-list" ]
+                                    <| List.indexedMap (viewDirectorListItem selected)
+                                    <| fst
+                                    <| List.unzip directors
+                        ]
+                    , tabs =
                         case model.selectedDirector of
                             Nothing ->
-                                div [] [ text "select a director" ]
+                                ( [], [] )
 
-                            Just id ->
-                                viewBosh id directors
-                ]
-            }
+                            Just _ ->
+                                Bosh.tabsView
+                    , main =
+                        [ case model.directors of
+                            Nothing ->
+                                div [] [ text "loading" ]
+
+                            Just directors ->
+                                case model.selectedDirector of
+                                    Nothing ->
+                                        div [] [ text "select a director" ]
+
+                                    Just id ->
+                                        viewBosh id directors
+                        ]
+                    }
 
 
 viewDirectorListItem : Int -> Int -> Director -> Html Msg
@@ -248,13 +302,18 @@ viewBosh id directors =
 -- HTTP
 
 
-getDirectors : Cmd Msg
-getDirectors =
+getDirectors : String -> Cmd Msg
+getDirectors appUrl =
     let
         url =
-            "http://localhost:8001/dozer/directors"
+            Erl.toString
+                <| Erl.appendPathSegments [ "directors" ]
+                <| Erl.parse appUrl
     in
-        Task.perform GetDirectorsFail GetDirectorsSucceed <| Http.get decodeDirectors url
+        (HttpAuth.send (Http.Request "GET" [] url Http.empty)
+            (GetDirectorsFail)
+            (GetDirectorsSucceed)
+        )
 
 
 decodeDirectors : Decoder (List Director)
