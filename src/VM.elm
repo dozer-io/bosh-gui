@@ -1,11 +1,16 @@
 module VM exposing (..)
 
 import Html exposing (..)
-import Html.Events exposing (onClick)
+
+
+-- import Html.Events exposing (onClick)
+
 import Platform.Cmd exposing (Cmd)
 import Html.App as App
 import Json.Decode exposing (int, string, list, Decoder)
 import Json.Decode.Pipeline exposing (decode, required)
+import Material.List as Lists
+import String
 
 
 main : Program Never
@@ -88,21 +93,33 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ onClick ToggleExpanded ]
-        [ h3 []
-            [ text <| "#" ++ (toString model.vm.index) ++ " " ++ model.vm.jobName
-            ]
-        , p []
+    Lists.li [ Lists.withSubtitle ]
+        [ Lists.content []
             [ text
-                <| if model.expanded then
-                    "expanded"
-                   else
-                    "collapsed"
+                <| "#"
+                ++ (toString model.vm.index)
+                ++ " "
+                ++ model.vm.jobName
+            , Lists.subtitle [] [ text <| String.join ", " model.vm.ips ]
             ]
+        , Lists.content2 []
+            [ Lists.info2 [] [ text model.vm.jobState ] ]
         ]
 
 
 
+-- div [ onClick ToggleExpanded ]
+--     [ h3 []
+--
+--         ]
+--     , p []
+--         [ text
+--             <| if model.expanded then
+--                 "expanded"
+--                else
+--                 "collapsed"
+--         ]
+--     ]
 -- SUBSCRIPTIONS
 
 

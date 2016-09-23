@@ -10,6 +10,9 @@ import Platform.Cmd exposing (Cmd)
 import String
 import VM
 import List.Extra
+import Material.List as Lists
+import Material.Options as Options
+import Material.Typography as Typo
 
 
 main : Program Never
@@ -157,11 +160,11 @@ createVM id vm =
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ text model.deployment ]
+        [ Options.styled h2 [ Typo.title ] [ text model.deployment ]
         , if model.loading then
             loading
           else
-            div []
+            Lists.ul []
                 <| List.indexedMap viewVM model.vms
         ]
 
