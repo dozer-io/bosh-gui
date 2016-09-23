@@ -305,10 +305,7 @@ getDirectors appUrl =
                 <| Erl.appendPathSegments [ "directors" ]
                 <| Erl.parse appUrl
     in
-        (HttpAuth.send (Http.Request "GET" [] url Http.empty)
-            (GetDirectorsFail)
-            (GetDirectorsSucceed)
-        )
+        HttpAuth.get url GetDirectorsFail GetDirectorsSucceed
 
 
 decodeDirectors : Decoder (List Director)

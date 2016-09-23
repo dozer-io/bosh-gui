@@ -217,9 +217,7 @@ getActivities endpoint =
                 |> Erl.addQuery "verbose" "0"
                 |> Erl.toString
     in
-        HttpAuth.send (Http.Request "GET" [] url Http.empty)
-            (GetActivitiesFail)
-            (GetActivitiesSucceed)
+        HttpAuth.get url GetActivitiesFail GetActivitiesSucceed
 
 
 decodeActivities : Decoder (List Activity.Activity)

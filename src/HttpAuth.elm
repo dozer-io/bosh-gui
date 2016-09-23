@@ -1,4 +1,4 @@
-effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authUrl, urlParser, setToken, configure, Config)
+effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, get, authUrl, urlParser, setToken, configure, Config)
 
 import Dict
 import Http
@@ -13,21 +13,20 @@ import Task
 
 
 type MyCmd msg
-    = Send Http.Request (Http.RawError -> msg) (String -> msg)
-      --    | Get Json.Decode.Decoder String (Http.RawError -> msg) (Http.Response -> msg)
+    = Send Http.Request (Http.RawError -> msg) (Http.Response -> msg)
+    | Get String (Http.RawError -> msg) (String -> msg)
     | TokenTask (Task.Task String OAuth.Token)
     | Configure Config
 
 
-send : Http.Request -> (Http.RawError -> a) -> (String -> a) -> Cmd a
+send : Http.Request -> (Http.RawError -> a) -> (Http.Response -> a) -> Cmd a
 send request errorTagger responseTagger =
     command (Send request errorTagger responseTagger)
 
 
-
--- get : Json.Decode.Decoder b -> String -> (Http.Error -> a) -> (Http.Response -> a) -> Cmd a b
--- get decoder url errorTagger responseTagger =
---     command (Get decoder url errorTagger responseTagger)
+get : String -> (Http.RawError -> a) -> (String -> a) -> Cmd a
+get url errorTagger responseTagger =
+    command (Get url errorTagger responseTagger)
 
 
 setToken : Task.Task String OAuth.Token -> Cmd msg
@@ -46,8 +45,9 @@ cmdMap f cmd =
         Send request errorTagger responseTagger ->
             Send request (errorTagger >> f) (responseTagger >> f)
 
-        -- Get decoder url errorTagger responseTagger ->
-        --     Get decoder url (errorTagger >> f) (responseTagger >> f)
+        Get url errorTagger responseTagger ->
+            Get url (errorTagger >> f) (responseTagger >> f)
+
         TokenTask task ->
             TokenTask task
 
@@ -193,24 +193,25 @@ onSelfMsg router selfMsg state =
                 <| Task.andThen (Task.toResult task)
                 <| handleResult error success
 
+        responseToString response =
+            case response.value of
+                Http.Text string ->
+                    string
+
+                _ ->
+                    ""
+
         runCmd cmd =
             case cmd of
                 Send request errTagger succTagger ->
                     spawnTask (toApp << errTagger) (toApp << succTagger)
                         <| Http.send Http.defaultSettings { request | headers = [ authHeader ] }
-                        `Task.andThen` \response ->
-                                        case response.value of
-                                            Http.Text string ->
-                                                Task.succeed string
 
-                                            _ ->
-                                                Task.succeed ""
+                Get url errTagger succTagger ->
+                    spawnTask (toApp << errTagger) (toApp << succTagger << responseToString)
+                        <| Http.send Http.defaultSettings
+                        <| httpRequest "GET" url
 
-                -- Get decoder url errTagger succTagger ->
-                --     spawnTask (toApp << errTagger) (toApp << succTagger)
-                --         <| Http.fromJson decoder
-                --         <| Http.send Http.defaultSettings
-                --         <| httpRequest "GET" url
                 TokenTask task ->
                     spawnTask (\_ -> noop) (toSelf << SetToken) task
 

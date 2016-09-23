@@ -281,9 +281,7 @@ getTaskEventOutput endpoint taskId =
                 |> Erl.addQuery "type" "event"
                 |> Erl.toString
     in
-        HttpAuth.send (Http.Request "GET" [] url Http.empty)
-            (GetTaskEventOutputFail)
-            (GetTaskEventOutputSucceed)
+        HttpAuth.get url GetTaskEventOutputFail GetTaskEventOutputSucceed
 
 
 
