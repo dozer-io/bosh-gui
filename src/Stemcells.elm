@@ -4,12 +4,12 @@ import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
 import Http
+import HttpAuth
 import Json.Decode exposing (..)
 import List exposing (map)
 import Material.Progress as Loading
 import Material
 import Platform.Cmd exposing (Cmd)
-import Task
 import Erl
 
 
@@ -52,8 +52,8 @@ init endpoint =
 
 type Msg
     = GetStemcells
-    | GetSucceed (List Stemcell)
-    | GetFail Http.Error
+    | GetSucceed String
+    | GetFail Http.RawError
     | Mdl (Material.Msg Msg)
 
 
@@ -63,14 +63,20 @@ update msg model =
         GetStemcells ->
             ( model, getStemcells model.endpoint )
 
-        GetSucceed stemcells ->
-            ( { model | stemcells = stemcells, loading = False }, Cmd.none )
+        GetSucceed string ->
+            let
+                stemcells =
+                    Result.withDefault []
+                        <| decodeString decodeStemcells string
+            in
+                ( { model | stemcells = stemcells, loading = False }, Cmd.none )
 
         GetFail _ ->
             ( model, Cmd.none )
 
         Mdl message' ->
             Material.update message' model
+
 
 
 -- VIEW
@@ -117,9 +123,7 @@ getStemcells endpoint =
                 |> Erl.appendPathSegments [ "stemcells" ]
                 |> Erl.toString
     in
-        Task.perform GetFail
-            GetSucceed
-            (Http.get decodeStemcells url)
+        HttpAuth.get url GetFail GetSucceed
 
 
 decodeStemcells : Decoder (List Stemcell)

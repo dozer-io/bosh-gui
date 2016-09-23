@@ -4,13 +4,9 @@ import Erl exposing (appendPathSegments)
 import Html exposing (..)
 import Html.App as App
 import Http
+import HttpAuth
 import Json.Decode exposing (..)
 import Platform.Cmd exposing (Cmd)
-
-
--- import Material.Progress as Loading
-
-import Task
 import String
 import VM
 import List.Extra
@@ -57,9 +53,9 @@ init endpoint deployment =
 
 
 type Msg
-    = GetVMsTaskFail Http.Error
-    | GetTaskStateFail Http.Error
-    | GetTaskResultFail Http.Error
+    = GetVMsTaskFail Http.RawError
+    | GetTaskStateFail Http.RawError
+    | GetTaskResultFail Http.RawError
     | GetVMsTaskSucceed TaskUrl
     | GetTaskStateSucceed String
     | GetTaskResultSucceed String
@@ -78,25 +74,35 @@ update msg model =
         GetTaskResultFail err ->
             ( model, getTaskResult model.taskUrl )
 
-        GetVMsTaskSucceed taskUrl ->
-            ( { model | taskUrl = taskUrl }, getTaskState taskUrl )
+        GetVMsTaskSucceed string ->
+            let
+                taskUrl =
+                    Result.withDefault ""
+                        <| decodeString decodeVMsTask string
+            in
+                ( { model | taskUrl = taskUrl }, getTaskState taskUrl )
 
-        GetTaskStateSucceed state ->
-            case state of
-                "done" ->
-                    ( model, getTaskResult model.taskUrl )
+        GetTaskStateSucceed string ->
+            let
+                state =
+                    Result.withDefault ""
+                        <| decodeString decodeTaskState string
+            in
+                case state of
+                    "done" ->
+                        ( model, getTaskResult model.taskUrl )
 
-                "running" ->
-                    ( model, getTaskState model.taskUrl )
+                    "running" ->
+                        ( model, getTaskState model.taskUrl )
 
-                "timeout" ->
-                    ( model, getVMsTask model.endpoint model.deployment )
+                    "timeout" ->
+                        ( model, getVMsTask model.endpoint model.deployment )
 
-                "error" ->
-                    ( model, getVMsTask model.endpoint model.deployment )
+                    "error" ->
+                        ( model, getVMsTask model.endpoint model.deployment )
 
-                _ ->
-                    ( model, getVMsTask model.endpoint model.deployment )
+                    _ ->
+                        ( model, getVMsTask model.endpoint model.deployment )
 
         GetTaskResultSucceed rawVMs ->
             let
@@ -192,12 +198,12 @@ getVMsTask endpoint deployment =
                 |> Erl.addQuery "format" "full"
                 |> Erl.toString
     in
-        Task.perform GetVMsTaskFail GetVMsTaskSucceed <| Http.get decodeVMsTask url
+        HttpAuth.get url GetVMsTaskFail GetVMsTaskSucceed
 
 
 getTaskState : TaskUrl -> Cmd Msg
 getTaskState taskUrl =
-    Task.perform GetTaskStateFail GetTaskStateSucceed <| Http.get decodeTaskState taskUrl
+    HttpAuth.get taskUrl GetTaskStateFail GetTaskStateSucceed
 
 
 getTaskResult : TaskUrl -> Cmd Msg
@@ -209,8 +215,7 @@ getTaskResult taskUrl =
                 <| appendPathSegments [ "output" ]
                 <| Erl.parse taskUrl
     in
-        Task.perform GetTaskResultFail GetTaskResultSucceed
-            <| Http.getString url
+        HttpAuth.get url GetTaskResultFail GetTaskResultSucceed
 
 
 
