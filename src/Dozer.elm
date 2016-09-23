@@ -114,7 +114,7 @@ init flags task =
 type Msg
     = SelectDirector Int
     | Mdl (Material.Msg Msg)
-    | GetDirectorsSucceed Http.Response
+    | GetDirectorsSucceed String
     | GetDirectorsFail Http.RawError
     | SubMsg Int Bosh.Msg
     | AuthUrl (Maybe String)
@@ -135,16 +135,11 @@ update msg model =
         GetDirectorsFail _ ->
             ( model, Cmd.none )
 
-        GetDirectorsSucceed response ->
+        GetDirectorsSucceed string ->
             let
                 directors =
-                    case response.value of
-                        Http.Text string ->
-                            Result.withDefault []
-                                <| decodeString decodeDirectors string
-
-                        Http.Blob _ ->
-                            []
+                    Result.withDefault []
+                        <| decodeString decodeDirectors string
 
                 toTuple id director =
                     let

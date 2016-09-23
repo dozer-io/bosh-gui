@@ -54,7 +54,7 @@ init endpoint =
 type Msg
     = GetActivities
     | GetActivitiesFail Http.RawError
-    | GetActivitiesSucceed Http.Response
+    | GetActivitiesSucceed String
     | SubMsgActivity Int Activity.Msg
     | SubMsgTaskEventOutput TaskEventOutput.Msg
 
@@ -68,16 +68,11 @@ update action model =
         GetActivitiesFail _ ->
             ( model, Cmd.none )
 
-        GetActivitiesSucceed response ->
+        GetActivitiesSucceed string ->
             let
                 activities =
-                    case response.value of
-                        Http.Text string ->
-                            Result.withDefault []
-                                <| decodeString decodeActivities string
-
-                        _ ->
-                            []
+                    Result.withDefault []
+                        <| decodeString decodeActivities string
 
                 createActivity id activity =
                     let

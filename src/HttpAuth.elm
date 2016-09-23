@@ -13,13 +13,13 @@ import Task
 
 
 type MyCmd msg
-    = Send Http.Request (Http.RawError -> msg) (Http.Response -> msg)
+    = Send Http.Request (Http.RawError -> msg) (String -> msg)
       --    | Get Json.Decode.Decoder String (Http.RawError -> msg) (Http.Response -> msg)
     | TokenTask (Task.Task String OAuth.Token)
     | Configure Config
 
 
-send : Http.Request -> (Http.RawError -> a) -> (Http.Response -> a) -> Cmd a
+send : Http.Request -> (Http.RawError -> a) -> (String -> a) -> Cmd a
 send request errorTagger responseTagger =
     command (Send request errorTagger responseTagger)
 
@@ -198,6 +198,13 @@ onSelfMsg router selfMsg state =
                 Send request errTagger succTagger ->
                     spawnTask (toApp << errTagger) (toApp << succTagger)
                         <| Http.send Http.defaultSettings { request | headers = [ authHeader ] }
+                        `Task.andThen` \response ->
+                                        case response.value of
+                                            Http.Text string ->
+                                                Task.succeed string
+
+                                            _ ->
+                                                Task.succeed ""
 
                 -- Get decoder url errTagger succTagger ->
                 --     spawnTask (toApp << errTagger) (toApp << succTagger)
