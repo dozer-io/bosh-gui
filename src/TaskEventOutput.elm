@@ -12,22 +12,15 @@ import Material.Icon as Icon
 import Material.Spinner as Loading
 import Material.Options exposing (styled, nop, cs, css)
 import Html.App as App
-
-
--- import Html.Attributes exposing (class, style)
-
 import Json.Decode exposing (int, string, list, float, oneOf, null, Decoder, decodeString)
 import Json.Decode.Pipeline exposing (decode, required, optional)
 import List.Extra exposing (groupWhile)
 import String
 import Time exposing (..)
 import Erl
-
-
--- import TimeAgo exposing (timeAgo)
-
 import Task exposing (perform)
-import Http exposing (getString)
+import Http
+import HttpAuth
 
 
 main : Program Never
@@ -144,7 +137,7 @@ type Msg
     = Mdl (Material.Msg Msg)
     | Tick Time.Time
     | GetTaskEventOutputSucceed String
-    | GetTaskEventOutputFail Http.Error
+    | GetTaskEventOutputFail Http.RawError
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -288,7 +281,9 @@ getTaskEventOutput endpoint taskId =
                 |> Erl.addQuery "type" "event"
                 |> Erl.toString
     in
-        perform GetTaskEventOutputFail GetTaskEventOutputSucceed <| getString url
+        HttpAuth.send (Http.Request "GET" [] url Http.empty)
+            (GetTaskEventOutputFail)
+            (GetTaskEventOutputSucceed)
 
 
 
