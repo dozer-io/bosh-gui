@@ -9,11 +9,11 @@ import Html.Attributes exposing (class, style)
 import Html.App as App
 import TimeTravel.Html.App as TimeTravel
 import Http
+import HttpAuth
 import Json.Decode exposing (..)
 import List exposing (map)
 import List.Extra exposing (getAt, setAt)
 import Platform.Cmd exposing (Cmd)
-import Task
 import Activity
 import TaskEventOutput
 import Erl
@@ -53,8 +53,8 @@ init endpoint =
 
 type Msg
     = GetActivities
-    | GetActivitiesFail Http.Error
-    | GetActivitiesSucceed (List Activity.Activity)
+    | GetActivitiesFail Http.RawError
+    | GetActivitiesSucceed Http.Response
     | SubMsgActivity Int Activity.Msg
     | SubMsgTaskEventOutput TaskEventOutput.Msg
 
@@ -68,8 +68,17 @@ update action model =
         GetActivitiesFail _ ->
             ( model, Cmd.none )
 
-        GetActivitiesSucceed activities ->
+        GetActivitiesSucceed response ->
             let
+                activities =
+                    case response.value of
+                        Http.Text string ->
+                            Result.withDefault []
+                                <| decodeString decodeActivities string
+
+                        _ ->
+                            []
+
                 createActivity id activity =
                     let
                         ( activityModel, cmd ) =
@@ -213,8 +222,9 @@ getActivities endpoint =
                 |> Erl.addQuery "verbose" "0"
                 |> Erl.toString
     in
-        Task.perform GetActivitiesFail GetActivitiesSucceed
-            <| Http.get decodeActivities url
+        HttpAuth.send (Http.Request "GET" [] url Http.empty)
+            (GetActivitiesFail)
+            (GetActivitiesSucceed)
 
 
 decodeActivities : Decoder (List Activity.Activity)
