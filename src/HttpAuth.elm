@@ -111,6 +111,9 @@ onEffects router cmds subs state =
                         Send _ _ _ ->
                             True
 
+                        Get _ _ _ ->
+                            True
+
                         _ ->
                             False
                 )
