@@ -1,12 +1,12 @@
 effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, authUrl, urlParser, setToken, configure, Config)
 
-import Http
-import Task
-import Process
-import OAuth
-import Navigation
-import String
 import Dict
+import Http
+import Navigation
+import OAuth
+import Process
+import String
+import Task
 
 
 -- COMMANDS
@@ -14,6 +14,7 @@ import Dict
 
 type MyCmd msg
     = Send Http.Request (Http.RawError -> msg) (Http.Response -> msg)
+      --    | Get Json.Decode.Decoder String (Http.RawError -> msg) (Http.Response -> msg)
     | TokenTask (Task.Task String OAuth.Token)
     | Configure Config
 
@@ -21,6 +22,12 @@ type MyCmd msg
 send : Http.Request -> (Http.RawError -> a) -> (Http.Response -> a) -> Cmd a
 send request errorTagger responseTagger =
     command (Send request errorTagger responseTagger)
+
+
+
+-- get : Json.Decode.Decoder b -> String -> (Http.Error -> a) -> (Http.Response -> a) -> Cmd a b
+-- get decoder url errorTagger responseTagger =
+--     command (Get decoder url errorTagger responseTagger)
 
 
 setToken : Task.Task String OAuth.Token -> Cmd msg
@@ -39,6 +46,8 @@ cmdMap f cmd =
         Send request errorTagger responseTagger ->
             Send request (errorTagger >> f) (responseTagger >> f)
 
+        -- Get decoder url errorTagger responseTagger ->
+        --     Get decoder url (errorTagger >> f) (responseTagger >> f)
         TokenTask task ->
             TokenTask task
 
@@ -163,38 +172,40 @@ onSelfMsg router selfMsg state =
                     )
                     state.subs
 
+        authHeader =
+            ( "Authorization"
+            , "bearer " ++ (Maybe.withDefault "" state.token)
+            )
+
+        httpRequest method url =
+            Http.Request method [ authHeader ] url Http.empty
+
+        handleResult error success result =
+            case result of
+                Ok value ->
+                    success value
+
+                Err err ->
+                    error err
+
+        spawnTask error success task =
+            Process.spawn
+                <| Task.andThen (Task.toResult task)
+                <| handleResult error success
+
         runCmd cmd =
             case cmd of
-                Send request errorTagger responseTagger ->
-                    Process.spawn
-                        <| Task.toResult
-                            (Http.send Http.defaultSettings
-                                { request
-                                    | headers =
-                                        [ ( "Authorization"
-                                          , "bearer " ++ (Maybe.withDefault "" state.token)
-                                          )
-                                        ]
-                                }
-                            )
-                        `Task.andThen` \response ->
-                                        case response of
-                                            Ok succ ->
-                                                toApp (responseTagger succ)
+                Send request errTagger succTagger ->
+                    spawnTask (toApp << errTagger) (toApp << succTagger)
+                        <| Http.send Http.defaultSettings { request | headers = [ authHeader ] }
 
-                                            Err rawError ->
-                                                toApp (errorTagger rawError)
-
+                -- Get decoder url errTagger succTagger ->
+                --     spawnTask (toApp << errTagger) (toApp << succTagger)
+                --         <| Http.fromJson decoder
+                --         <| Http.send Http.defaultSettings
+                --         <| httpRequest "GET" url
                 TokenTask task ->
-                    Process.spawn
-                        <| Task.toResult task
-                        `Task.andThen` \result ->
-                                        case result of
-                                            Ok token ->
-                                                toSelf (SetToken token)
-
-                                            Err _ ->
-                                                noop
+                    spawnTask (\_ -> noop) (toSelf << SetToken) task
 
                 Configure config ->
                     Process.spawn
