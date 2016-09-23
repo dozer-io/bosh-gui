@@ -3,6 +3,7 @@ module Deployments exposing (..)
 import Html exposing (..)
 import Html.App as App
 import Http
+import HttpAuth
 import Json.Decode exposing (..)
 import List exposing (map)
 import List.Extra exposing (getAt, setAt)
@@ -48,8 +49,8 @@ init endpoint =
 
 type Msg
     = GetDeployments
-    | GetDeploymentsFail Http.Error
-    | GetDeploymentsSucceed (List Deployment)
+    | GetDeploymentsFail Http.RawError
+    | GetDeploymentsSucceed String
     | SubMsg Int VMs.Msg
 
 
@@ -62,8 +63,12 @@ update action model =
         GetDeploymentsFail _ ->
             ( model, Cmd.none )
 
-        GetDeploymentsSucceed deployments ->
+        GetDeploymentsSucceed string ->
             let
+                deployments =
+                    Result.withDefault []
+                        <| decodeString decodeDeployments string
+
                 createVMs id deployment =
                     let
                         ( vms, cmds ) =
@@ -137,8 +142,7 @@ getDeployments endpoint =
                 |> Erl.appendPathSegments [ "deployments" ]
                 |> Erl.toString
     in
-        Task.perform GetDeploymentsFail GetDeploymentsSucceed
-            <| Http.get decodeDeployments url
+        HttpAuth.get url GetDeploymentsFail GetDeploymentsSucceed
 
 
 decodeDeployments : Decoder (List Deployment)
