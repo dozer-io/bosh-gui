@@ -10,7 +10,7 @@ import Platform.Cmd exposing (Cmd)
 import String
 import VM
 import List.Extra
-import Material.List as Lists
+import Material.Table as Table
 import Material.Options as Options
 import Material.Typography as Typo
 import Common
@@ -165,8 +165,19 @@ view model =
         , if model.loading then
             Common.loaderText <| "Loading VMs for: " ++ model.deployment ++ "..."
           else
-            Lists.ul []
-                <| List.indexedMap viewVM model.vms
+            Table.table [ Options.css "width" "100%" ]
+                [ Table.thead []
+                    [ Table.tr []
+                        [ Table.th [] [ text "VM" ]
+                        , Table.th [] [ text "State" ]
+                          --                        , Table.th [] [ text "VM Type" ]
+                        , Table.th [] [ text "IPs" ]
+                        ]
+                    ]
+                , Table.tbody []
+                    <| List.indexedMap viewVM
+                        model.vms
+                ]
         ]
 
 
