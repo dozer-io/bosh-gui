@@ -1,5 +1,6 @@
 module Deployments exposing (..)
 
+import Erl
 import Html exposing (..)
 import Html.App as App
 import Http
@@ -7,10 +8,10 @@ import HttpAuth
 import Json.Decode exposing (..)
 import List exposing (map)
 import List.Extra exposing (getAt, setAt)
+import Material.Grid exposing (grid, cell, size, Device(..))
 import Platform.Cmd exposing (Cmd)
-import Task
 import VMs
-import Erl
+import Common
 
 
 main : Program Never
@@ -105,14 +106,14 @@ update action model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ (if model.loading then
-            h1 [] [ text "Loading" ]
-           else
-            text ""
-          )
-        , div []
-            <| List.indexedMap viewDeployment model.deployments
+    grid []
+        [ if model.loading then
+            cell [ size All 12 ] [ Common.loaderSpinner "Loading deployments" ]
+          else
+            cell [ size All 12 ]
+                [ div []
+                    <| List.indexedMap viewDeployment model.deployments
+                ]
         ]
 
 

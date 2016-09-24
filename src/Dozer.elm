@@ -9,6 +9,7 @@ import Material.Layout as Layout
 import Material.Options exposing (styled, cs, css, nop)
 import Material.Color as Color exposing (background, white, primary, color, Hue(..), Shade(..))
 import Material.Icon as Icon
+import Material.Menu as Menu
 import Time exposing (Time, second)
 import Html.App as App
 import HttpAuth
@@ -54,6 +55,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ HttpAuth.authUrl AuthUrl
+        , Menu.subs Mdl model.mdl
         ]
 
 

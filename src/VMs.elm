@@ -13,6 +13,7 @@ import List.Extra
 import Material.List as Lists
 import Material.Options as Options
 import Material.Typography as Typo
+import Common
 
 
 main : Program Never
@@ -162,16 +163,11 @@ view model =
     div []
         [ Options.styled h2 [ Typo.title ] [ text model.deployment ]
         , if model.loading then
-            loading
+            Common.loaderText <| "Loading VMs for: " ++ model.deployment ++ "..."
           else
             Lists.ul []
                 <| List.indexedMap viewVM model.vms
         ]
-
-
-loading : Html Msg
-loading =
-    h1 [] [ text "Loading" ]
 
 
 viewVM : Int -> VM.Model -> Html Msg
