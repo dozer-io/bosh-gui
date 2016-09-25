@@ -9,10 +9,12 @@ import HttpAuth
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (decode, required)
 import Material
-import Material.Options as Options
+import Material.Options as Options exposing (css)
 import Material.Table as Table
 import Material.Typography as Typo
 import Material.Toggles as Toggles
+import Material.Button as Button
+import Material.Grid exposing (grid, cell, size, align, Device(..), Align(..))
 import Platform.Cmd exposing (Cmd)
 import String
 
@@ -147,7 +149,29 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ Options.styled h2 [ Typo.title ] [ text model.deployment ]
+        [ grid []
+            [ cell [ size All 8 ]
+                [ Options.styled span
+                    [ Typo.headline, css "line-height" "36px" ]
+                    [ text model.deployment ]
+                ]
+            , cell [ size All 4, align Middle ]
+                [ case model.selected of
+                    Nothing ->
+                        div [] []
+
+                    Just selected ->
+                        Button.render Mdl
+                            [ 0 ]
+                            model.mdl
+                            [ css "float" "right"
+                            , Button.primary
+                            , Button.ripple
+                            , Button.onClick <| Select "foo"
+                            ]
+                            [ text <| "Restart " ++ selected ]
+                ]
+            ]
         , if model.loading then
             Common.loaderText <| "Loading VMs for: " ++ model.deployment ++ "..."
           else
@@ -158,7 +182,7 @@ view model =
                         , Table.th [] [ text "VM" ]
                         , Table.th [] [ text "State" ]
                           --                        , Table.th [] [ text "VM Type" ]
-                        , Table.th [] [ text "IPs" ]
+                        , Table.th [ css "width" "99%" ] [ text "IPs" ]
                         ]
                     ]
                 , Table.tbody []
