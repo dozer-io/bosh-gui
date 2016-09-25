@@ -48,6 +48,20 @@
       {"location": "http://localhost:8001/bosh/<% url[1] %>/tasks/1"}
 
 - request:
+    method: [PUT]
+    url: ^/bosh/([^\/]+)/deployments/([^\/]+)/jobs/([^\/]+)/([^\/]+)$
+    query:
+      state: restart
+  response:
+    status: 202
+    latency: 1000
+    headers:
+      content-type: application/json
+    body: |
+      {"location": "http://localhost:8001/bosh/<% url[1] %>/tasks/48"}
+      
+
+- request:
     method: [GET]
     url: ^/bosh/([^\/]+)/tasks/1$ # vms
   response:

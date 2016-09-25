@@ -10,6 +10,7 @@ import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (decode, required)
 import Material
 import Material.Options as Options exposing (css)
+import Material.Color as Color
 import Material.Table as Table
 import Material.Typography as Typo
 import Material.Toggles as Toggles
@@ -40,7 +41,8 @@ type alias Model =
     , loading : Bool
     , taskUrl : TaskUrl
     , endpoint : String
-    , selected : Maybe String
+    , selected : Maybe VMNameIDx
+    , frozen : Bool
     }
 
 
@@ -63,9 +65,13 @@ type alias TaskUrl =
     String
 
 
+type alias VMNameIDx =
+    String
+
+
 init : String -> Deployment -> ( Model, Cmd Msg )
 init endpoint deployment =
-    ( Model Material.model deployment [] True "" endpoint Nothing
+    ( Model Material.model deployment [] True "" endpoint Nothing False
     , getVMsTask endpoint deployment
     )
 
@@ -76,13 +82,16 @@ init endpoint deployment =
 
 type Msg
     = Mdl (Material.Msg Msg)
-    | Select String
+    | Select VMNameIDx
     | GetVMsTaskFail Http.RawError
     | GetTaskStateFail Http.RawError
     | GetTaskResultFail Http.RawError
+    | PutRestartVMFail Http.RawError
     | GetVMsTaskSucceed TaskUrl
     | GetTaskStateSucceed String
     | GetTaskResultSucceed String
+    | PutRestartVMSucceed Http.Response
+    | RestartVM VMNameIDx
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,8 +100,11 @@ update msg model =
         Mdl action' ->
             Material.update action' model
 
-        Select key ->
-            ( { model | selected = Just key }, Cmd.none )
+        Select vmNameIDx' ->
+            if model.frozen then
+                ( model, Cmd.none )
+            else
+                ( { model | selected = Just vmNameIDx' }, Cmd.none )
 
         GetVMsTaskFail _ ->
             ( model, getVMsTask model.endpoint model.deployment )
@@ -100,8 +112,11 @@ update msg model =
         GetTaskStateFail _ ->
             ( model, getTaskState model.taskUrl )
 
-        GetTaskResultFail err ->
+        GetTaskResultFail _ ->
             ( model, getTaskResult model.taskUrl )
+
+        PutRestartVMFail _ ->
+            ( { model | frozen = False }, Cmd.none )
 
         GetVMsTaskSucceed string ->
             let
@@ -141,6 +156,14 @@ update msg model =
             in
                 ( { model | vms = newVMs, loading = False }, Cmd.none )
 
+        PutRestartVMSucceed response ->
+            ( { model | frozen = False }, Cmd.none )
+
+        RestartVM vmNameIDx' ->
+            ( { model | frozen = True }
+            , putRestartVM model.endpoint model.deployment vmNameIDx'
+            )
+
 
 
 -- VIEW
@@ -161,15 +184,23 @@ view model =
                         div [] []
 
                     Just selected ->
-                        Button.render Mdl
-                            [ 0 ]
-                            model.mdl
-                            [ css "float" "right"
-                            , Button.primary
-                            , Button.ripple
-                            , Button.onClick <| Select "foo"
-                            ]
-                            [ text <| "Restart " ++ selected ]
+                        if model.frozen then
+                            Options.styled span
+                                [ Typo.button
+                                , css "float" "right"
+                                , Color.text Color.primary
+                                ]
+                                [ text <| "Restarting " ++ selected ++ "..." ]
+                        else
+                            Button.render Mdl
+                                [ 0 ]
+                                model.mdl
+                                [ css "float" "right"
+                                , Button.primary
+                                , Button.ripple
+                                , Button.onClick <| RestartVM selected
+                                ]
+                                [ text <| "Restart " ++ selected ]
                 ]
             ]
         , if model.loading then
@@ -195,23 +226,20 @@ view model =
 viewVM : Maybe String -> Material.Model -> Int -> VM -> Html Msg
 viewVM selected mdl idx vm =
     let
-        key =
-            vm.jobName ++ "/" ++ (toString vm.index)
-
         selected' =
-            (Just key) == selected
+            (Just <| vmNameIDx vm) == selected
     in
         Table.tr [ Table.selected `Options.when` selected' ]
             [ Table.td []
                 [ Toggles.checkbox Mdl
                     [ idx ]
                     mdl
-                    [ Toggles.onClick (Select key)
+                    [ Toggles.onClick (Select <| vmNameIDx vm)
                     , Toggles.value selected'
                     ]
                     []
                 ]
-            , Table.td [] [ text key ]
+            , Table.td [] [ text <| vmNameIDx vm ]
             , Table.td [] [ text vm.jobState ]
               --        , Table.td [] [ text model.vm.jobState ]
             , Table.td [] [ text <| String.join ", " vm.ips ]
@@ -260,6 +288,24 @@ getTaskResult taskUrl =
         HttpAuth.get url GetTaskResultFail GetTaskResultSucceed
 
 
+putRestartVM : String -> Deployment -> VMNameIDx -> Cmd Msg
+putRestartVM endpoint deployment vmNameIDx' =
+    let
+        url =
+            Erl.toString
+                <| appendPathSegments
+                    ([ "deployments", deployment, "jobs" ]
+                        ++ String.split "/" vmNameIDx'
+                    )
+                <| Erl.addQuery "state" "restart"
+                <| Erl.parse endpoint
+
+        request =
+            Http.Request "PUT" [] url Http.empty
+    in
+        HttpAuth.send request PutRestartVMFail PutRestartVMSucceed
+
+
 
 -- DECODE
 
@@ -296,3 +342,12 @@ decodeVMsResult vms =
             <| List.map (decodeString decodeVM)
             <| String.lines
             <| String.dropRight 1 vms
+
+
+
+-- UTIL
+
+
+vmNameIDx : VM -> VMNameIDx
+vmNameIDx vm =
+    vm.jobName ++ "/" ++ (toString vm.index)
