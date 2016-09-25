@@ -8,7 +8,6 @@ import HttpAuth
 import Json.Decode exposing (..)
 import List exposing (map)
 import List.Extra exposing (getAt, setAt)
-import Material.Grid exposing (grid, cell, size, Device(..))
 import Platform.Cmd exposing (Cmd)
 import VMs
 import Common
@@ -106,15 +105,11 @@ update action model =
 
 view : Model -> Html Msg
 view model =
-    grid []
-        [ if model.loading then
-            cell [ size All 12 ] [ Common.loaderSpinner "Loading deployments" ]
-          else
-            cell [ size All 12 ]
-                [ div []
-                    <| List.indexedMap viewDeployment model.deployments
-                ]
-        ]
+    if model.loading then
+        Common.loaderSpinner "Loading deployments"
+    else
+        div []
+            <| List.indexedMap viewDeployment model.deployments
 
 
 viewDeployment : Int -> VMs.Model -> Html Msg
