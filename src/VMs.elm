@@ -1,5 +1,6 @@
 module VMs exposing (..)
 
+import Common
 import Erl exposing (appendPathSegments)
 import Html exposing (..)
 import Html.App as App
@@ -7,12 +8,13 @@ import Http
 import HttpAuth
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (decode, required)
+import Material
+import Material.Options as Options
+import Material.Table as Table
+import Material.Typography as Typo
+import Material.Toggles as Toggles
 import Platform.Cmd exposing (Cmd)
 import String
-import Material.Table as Table
-import Material.Options as Options
-import Material.Typography as Typo
-import Common
 
 
 main : Program Never
@@ -30,11 +32,13 @@ main =
 
 
 type alias Model =
-    { deployment : Deployment
+    { mdl : Material.Model
+    , deployment : Deployment
     , vms : List VM
     , loading : Bool
     , taskUrl : TaskUrl
     , endpoint : String
+    , selected : Maybe String
     }
 
 
@@ -59,7 +63,9 @@ type alias TaskUrl =
 
 init : String -> Deployment -> ( Model, Cmd Msg )
 init endpoint deployment =
-    ( Model deployment [] True "" endpoint, getVMsTask endpoint deployment )
+    ( Model Material.model deployment [] True "" endpoint Nothing
+    , getVMsTask endpoint deployment
+    )
 
 
 
@@ -67,7 +73,9 @@ init endpoint deployment =
 
 
 type Msg
-    = GetVMsTaskFail Http.RawError
+    = Mdl (Material.Msg Msg)
+    | Select String
+    | GetVMsTaskFail Http.RawError
     | GetTaskStateFail Http.RawError
     | GetTaskResultFail Http.RawError
     | GetVMsTaskSucceed TaskUrl
@@ -78,6 +86,12 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Mdl action' ->
+            Material.update action' model
+
+        Select key ->
+            ( { model | selected = Just key }, Cmd.none )
+
         GetVMsTaskFail _ ->
             ( model, getVMsTask model.endpoint model.deployment )
 
@@ -140,31 +154,44 @@ view model =
             Table.table [ Options.css "width" "100%" ]
                 [ Table.thead []
                     [ Table.tr []
-                        [ Table.th [] [ text "VM" ]
+                        [ Table.th [] [ text "" ]
+                        , Table.th [] [ text "VM" ]
                         , Table.th [] [ text "State" ]
                           --                        , Table.th [] [ text "VM Type" ]
                         , Table.th [] [ text "IPs" ]
                         ]
                     ]
                 , Table.tbody []
-                    <| List.map viewVM model.vms
+                    <| List.indexedMap (viewVM model.selected model.mdl)
+                        model.vms
                 ]
         ]
 
 
-viewVM : VM -> Html Msg
-viewVM vm =
-    Table.tr []
-        [ Table.td []
-            [ text
-                <| vm.jobName
-                ++ "/"
-                ++ (toString vm.index)
+viewVM : Maybe String -> Material.Model -> Int -> VM -> Html Msg
+viewVM selected mdl idx vm =
+    let
+        key =
+            vm.jobName ++ "/" ++ (toString vm.index)
+
+        selected' =
+            (Just key) == selected
+    in
+        Table.tr [ Table.selected `Options.when` selected' ]
+            [ Table.td []
+                [ Toggles.checkbox Mdl
+                    [ idx ]
+                    mdl
+                    [ Toggles.onClick (Select key)
+                    , Toggles.value selected'
+                    ]
+                    []
+                ]
+            , Table.td [] [ text key ]
+            , Table.td [] [ text vm.jobState ]
+              --        , Table.td [] [ text model.vm.jobState ]
+            , Table.td [] [ text <| String.join ", " vm.ips ]
             ]
-        , Table.td [] [ text vm.jobState ]
-          --        , Table.td [] [ text model.vm.jobState ]
-        , Table.td [] [ text <| String.join ", " vm.ips ]
-        ]
 
 
 

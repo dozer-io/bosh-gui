@@ -85,7 +85,7 @@ type alias Director =
 
 
 type alias Model =
-    { mdl : Material.Model
+    { mdl : Mdl
     , authUrl : Maybe String
     , selectedDirector : Maybe Int
     , directors : Maybe (List ( Director, Bosh.Model ))
