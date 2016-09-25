@@ -11,7 +11,7 @@
     url: ^/bosh/([^\/]+)/deployments$
   response:
     file: bosh_deployments_list.json
-    latency: 1000
+    latency: 100
     headers:
       content-type: application/json
 
@@ -41,7 +41,7 @@
       format: full
   response:
     status: 202
-    latency: 1000    
+    latency: 100
     headers:
       content-type: application/json
     body: |
@@ -51,7 +51,7 @@
     method: [GET]
     url: ^/bosh/([^\/]+)/tasks/1$ # vms
   response:
-    latency: 1000        
+    latency: 100
     headers:
       content-type: application/json
     body: |
@@ -111,15 +111,15 @@
       headers:
         content-type: application/json
     - file: dozer_directors_show_staging_<% url[1] %>.json
-      latency: 1000
+      latency: 100
       headers:
         content-type: application/json
     - file: dozer_directors_show_staging_<% url[1] %>.json
-      latency: 1000
+      latency: 100
       headers:
         content-type: application/json
     - file: dozer_directors_show_staging_<% url[1] %>.json
-      latency: 1000
+      latency: 100
       headers:
         content-type: application/json
     - file: dozer_directors_show_running_<% url[1] %>.json
