@@ -6,10 +6,9 @@ import Html.App as App
 import Http
 import HttpAuth
 import Json.Decode exposing (..)
+import Json.Decode.Pipeline exposing (decode, required)
 import Platform.Cmd exposing (Cmd)
 import String
-import VM
-import List.Extra
 import Material.Table as Table
 import Material.Options as Options
 import Material.Typography as Typo
@@ -32,10 +31,21 @@ main =
 
 type alias Model =
     { deployment : Deployment
-    , vms : List VM.Model
+    , vms : List VM
     , loading : Bool
     , taskUrl : TaskUrl
     , endpoint : String
+    }
+
+
+type alias VM =
+    { vmCid : String
+    , ips : List String
+    , agentId : String
+    , jobName : String
+    , index : Int
+    , jobState : String
+    , resourcePool : String
     }
 
 
@@ -63,7 +73,6 @@ type Msg
     | GetVMsTaskSucceed TaskUrl
     | GetTaskStateSucceed String
     | GetTaskResultSucceed String
-    | SubMsg Int VM.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -110,48 +119,11 @@ update msg model =
 
         GetTaskResultSucceed rawVMs ->
             let
-                ( newVMs, cmds ) =
-                    List.unzip
-                        <| List.indexedMap createVM
-                        <| Result.withDefault []
+                newVMs =
+                    Result.withDefault []
                         <| decodeVMsResult rawVMs
             in
-                ( { model | vms = newVMs, loading = False }, Cmd.batch cmds )
-
-        SubMsg id subMsg ->
-            let
-                maybeVM =
-                    List.Extra.getAt id model.vms
-            in
-                case maybeVM of
-                    Nothing ->
-                        ( model, Cmd.none )
-
-                    Just vm ->
-                        let
-                            ( newVM, cmds ) =
-                                VM.update subMsg vm
-
-                            maybeVMs =
-                                List.Extra.setAt id newVM model.vms
-                        in
-                            case maybeVMs of
-                                Nothing ->
-                                    ( model, Cmd.none )
-
-                                Just vms ->
-                                    ( { model | vms = vms }
-                                    , Cmd.map (SubMsg id) cmds
-                                    )
-
-
-createVM : Int -> VM.VM -> ( VM.Model, Cmd Msg )
-createVM id vm =
-    let
-        ( newVM, cmds ) =
-            VM.init vm
-    in
-        ( newVM, Cmd.map (SubMsg id) cmds )
+                ( { model | vms = newVMs, loading = False }, Cmd.none )
 
 
 
@@ -175,15 +147,24 @@ view model =
                         ]
                     ]
                 , Table.tbody []
-                    <| List.indexedMap viewVM
-                        model.vms
+                    <| List.map viewVM model.vms
                 ]
         ]
 
 
-viewVM : Int -> VM.Model -> Html Msg
-viewVM id model =
-    App.map (SubMsg id) (VM.view model)
+viewVM : VM -> Html Msg
+viewVM vm =
+    Table.tr []
+        [ Table.td []
+            [ text
+                <| vm.jobName
+                ++ "/"
+                ++ (toString vm.index)
+            ]
+        , Table.td [] [ text vm.jobState ]
+          --        , Table.td [] [ text model.vm.jobState ]
+        , Table.td [] [ text <| String.join ", " vm.ips ]
+        ]
 
 
 
@@ -232,6 +213,18 @@ getTaskResult taskUrl =
 -- DECODE
 
 
+decodeVM : Decoder VM
+decodeVM =
+    decode VM
+        |> required "vm_cid" string
+        |> required "ips" (list string)
+        |> required "agent_id" string
+        |> required "job_name" string
+        |> required "index" int
+        |> required "job_state" string
+        |> required "resource_pool" string
+
+
 decodeVMsTask : Decoder TaskUrl
 decodeVMsTask =
     "location" := string
@@ -242,13 +235,13 @@ decodeTaskState =
     "state" := string
 
 
-decodeVMsResult : String -> Result String (List VM.VM)
+decodeVMsResult : String -> Result String (List VM)
 decodeVMsResult vms =
     let
         combineResults =
             List.foldr (Result.map2 (::)) (Ok [])
     in
         combineResults
-            <| List.map (decodeString VM.decodeVM)
+            <| List.map (decodeString decodeVM)
             <| String.lines
             <| String.dropRight 1 vms
