@@ -107,13 +107,13 @@ update msg model =
                 ( { model | selected = Just vmNameIDx' }, Cmd.none )
 
         GetVMsTaskFail _ ->
-            ( model, getVMsTask model.endpoint model.deployment )
+            ( model, Cmd.none )
 
         GetTaskStateFail _ ->
-            ( model, getTaskState model.taskUrl )
+            ( model, Cmd.none )
 
         GetTaskResultFail _ ->
-            ( model, getTaskResult model.taskUrl )
+            ( model, Cmd.none )
 
         PutRestartVMFail _ ->
             ( { model | frozen = False }, Cmd.none )
@@ -137,6 +137,9 @@ update msg model =
                         ( model, getTaskResult model.taskUrl )
 
                     "running" ->
+                        ( model, getTaskState model.taskUrl )
+
+                    "queued" ->
                         ( model, getTaskState model.taskUrl )
 
                     "timeout" ->
