@@ -177,7 +177,7 @@ tabsView : ( List (Html a), List (Options.Property () a) )
 tabsView =
     ( [ text "Activities"
       , text "VMs"
-      , text "Stemcells"
+        --      , text "Stemcells"
       ]
     , []
     )
