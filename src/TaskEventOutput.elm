@@ -159,7 +159,9 @@ update msg model =
                         <| Result.withDefault []
                         <| decodeEvents rawEvents
             in
-                ( { model | stages = stages }, Cmd.none )
+                ( { model | stages = stages }
+                , getTaskEventOutput model.endpoint model.taskId
+                )
 
 
 eventsToStages : List Event -> List Stage
