@@ -26,7 +26,7 @@ import HttpAuth
 main : Program Never
 main =
     App.program
-        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000" 65
+        { init = init "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000" 65 False
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -48,6 +48,7 @@ type alias Model =
     , taskId : Int
     , now : Time
     , endpoint : String
+    , refresh : Bool
     }
 
 
@@ -122,9 +123,9 @@ time =
     float `Json.Decode.andThen` \second -> Json.Decode.succeed <| Time.second * second
 
 
-init : String -> Int -> ( Model, Cmd Msg )
-init endpoint taskId =
-    ( Model Material.model [] True taskId (second * 0) endpoint
+init : String -> Int -> Bool -> ( Model, Cmd Msg )
+init endpoint taskId refresh =
+    ( Model Material.model [] True taskId (second * 0) endpoint refresh
     , Cmd.batch [ Task.perform Tick Tick Time.now, getTaskEventOutput endpoint taskId ]
     )
 
@@ -160,7 +161,10 @@ update msg model =
                         <| decodeEvents rawEvents
             in
                 ( { model | stages = stages }
-                , getTaskEventOutput model.endpoint model.taskId
+                , if model.refresh then
+                    getTaskEventOutput model.endpoint model.taskId
+                  else
+                    Cmd.none
                 )
 
 

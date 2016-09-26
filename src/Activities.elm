@@ -100,8 +100,19 @@ update action model =
 
                             Just selectedActivity ->
                                 let
+                                    refresh =
+                                        case selectedActivity.activity.state of
+                                            "queued" ->
+                                                True
+
+                                            "processing" ->
+                                                True
+
+                                            _ ->
+                                                False
+
                                     ( taskEventOutput, taskEventOutputCmd ) =
-                                        TaskEventOutput.init model.endpoint selectedActivity.activity.id
+                                        TaskEventOutput.init model.endpoint selectedActivity.activity.id (Debug.log "refresh" refresh)
                                 in
                                     ( { model
                                         | activities = activities

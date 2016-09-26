@@ -1,7 +1,7 @@
 [
     {
         "id":48,
-        "state":"running",
+        "state":"processing",
         "description":"create release",
         "timestamp":1440360431,
         "result":"Created release `redis/9.1'",
