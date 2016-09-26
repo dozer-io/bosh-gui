@@ -136,7 +136,7 @@ update msg model =
                     "done" ->
                         ( model, getTaskResult model.taskUrl )
 
-                    "running" ->
+                    "processing" ->
                         ( model, getTaskState model.taskUrl )
 
                     "queued" ->
