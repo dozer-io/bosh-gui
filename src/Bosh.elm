@@ -40,7 +40,6 @@ type alias Model =
     , deployments : Deployments.Model
     , stemcellsLoaded : Bool
     , stemcells : Stemcells.Model
-    , activitiesLoaded : Bool
     , activities : Activities.Model
     , endpoint : String
     }
@@ -67,7 +66,6 @@ init endpoint =
           , deployments = deployments
           , stemcellsLoaded = False
           , stemcells = stemcells
-          , activitiesLoaded = True
           , activities = activities
           , endpoint = endpoint
           }
@@ -93,16 +91,13 @@ update msg model =
         SelectTab idx ->
             case idx of
                 0 ->
-                    if model.activitiesLoaded then
-                        ( { model | tab = idx }, Cmd.none )
-                    else
-                        let
-                            ( activities, cmd ) =
-                                Activities.update Activities.GetActivities model.activities
-                        in
-                            ( { model | tab = idx, activities = activities, activitiesLoaded = True }
-                            , Cmd.map ActivitiesMsg cmd
-                            )
+                    let
+                        ( activities, cmd ) =
+                            Activities.update Activities.GetActivities model.activities
+                    in
+                        ( { model | tab = idx, activities = activities }
+                        , Cmd.map ActivitiesMsg cmd
+                        )
 
                 1 ->
                     if model.deploymentsLoaded then
