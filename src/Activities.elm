@@ -225,7 +225,7 @@ getActivities endpoint =
             Erl.parse endpoint
                 |> Erl.appendPathSegments [ "tasks" ]
                 |> Erl.addQuery "limit" "20"
-                |> Erl.addQuery "verbose" "0"
+                |> Erl.addQuery "verbose" "1"
                 |> Erl.toString
     in
         HttpAuth.get url GetActivitiesFail GetActivitiesSucceed
