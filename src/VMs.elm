@@ -304,7 +304,7 @@ putRestartVM endpoint deployment vmNameIDx' =
                 <| Erl.parse endpoint
 
         request =
-            Http.Request "PUT" [] url Http.empty
+            Http.Request "PUT" [ ( "Content-Type", "text/yaml" ) ] url Http.empty
     in
         HttpAuth.send request PutRestartVMFail PutRestartVMSucceed
 
