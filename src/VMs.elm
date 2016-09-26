@@ -193,7 +193,7 @@ view model =
                                 , css "float" "right"
                                 , Color.text Color.primary
                                 ]
-                                [ text <| "Restarting " ++ selected ++ "..." ]
+                                [ text "Restarting..." ]
                         else
                             Button.render Mdl
                                 [ 0 ]
@@ -203,7 +203,7 @@ view model =
                                 , Button.ripple
                                 , Button.onClick <| RestartVM selected
                                 ]
-                                [ text <| "Restart " ++ selected ]
+                                [ text "Restart" ]
                 ]
             ]
         , if model.loading then
@@ -213,10 +213,10 @@ view model =
                 [ Table.thead []
                     [ Table.tr []
                         [ Table.th [] [ text "" ]
-                        , Table.th [] [ text "VM" ]
-                        , Table.th [] [ text "State" ]
+                        , Table.th [ css "width" "33%" ] [ text "VM" ]
+                        , Table.th [ css "width" "33%" ] [ text "State" ]
                           --                        , Table.th [] [ text "VM Type" ]
-                        , Table.th [ css "width" "99%" ] [ text "IPs" ]
+                        , Table.th [ css "width" "33%" ] [ text "IPs" ]
                         ]
                     ]
                 , Table.tbody []

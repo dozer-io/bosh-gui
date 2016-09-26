@@ -28,7 +28,7 @@
     url: ^/bosh/([^\/]+)/tasks$
     query:
       limit: 20
-      verbose: 0
+      verbose: 1
   response:
     file: bosh_tasks_list.json
     headers:
