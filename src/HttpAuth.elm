@@ -208,7 +208,8 @@ onSelfMsg router selfMsg state =
             case cmd of
                 Send request errTagger succTagger ->
                     spawnTask (toApp << errTagger) (toApp << succTagger)
-                        <| Http.send Http.defaultSettings { request | headers = [ authHeader ] }
+                        <| Http.send Http.defaultSettings
+                            { request | headers = request.headers ++ [ authHeader ] }
 
                 Get url errTagger succTagger ->
                     spawnTask (toApp << errTagger) (toApp << succTagger << responseToString)
