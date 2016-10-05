@@ -1,4 +1,4 @@
-module Bosh exposing (..)
+module Bosh exposing (Model, init, Msg(..), update, mainView, tabsView)
 
 import Platform.Cmd exposing (Cmd, none)
 import Html exposing (..)
@@ -177,7 +177,7 @@ tabsView : ( List (Html a), List (Options.Property () a) )
 tabsView =
     ( [ text "Activities"
       , text "VMs"
-        --      , text "Stemcells"
+      , text "Stemcells"
       ]
     , []
     )
