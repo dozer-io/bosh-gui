@@ -1,11 +1,9 @@
 var gulp = require('gulp');
-// var browserSync = require('browser-sync').create();
-// var icons = require('gulp-material-icons');
-// var icon_config = require('./icons.json');
-// var gulpNgConfig = require('gulp-ng-config');
+var gutil = require("gulp-util");
 var stubby = require('gulp-stubby-server');
-// var less = require('gulp-less');
-// var path = require('path');
+var webpack = require("webpack");
+var WebpackDevServer = require("webpack-dev-server");
+var webpackConfig = require("./webpack.config.js");
 
 gulp.task('stub', function(cb) {
   var options = {
@@ -24,46 +22,19 @@ gulp.task('stub', function(cb) {
   stubby(options, cb);
 });
 
-// gulp.task('less', function () {
-//   return gulp.src('./src/less/*.less')
-//     .pipe(less())
-//     .pipe(gulp.dest('./src/css/'));
-// });
+gulp.task("serve", ['stub'], function(callback) {
+  // modify some webpack config options
+  var myConfig = Object.create(webpackConfig);
+  myConfig.devtool = "eval";
+  myConfig.debug = true;
 
-// gulp.task('serve', ['stub', 'config', 'less'], function () {
-
-//   browserSync.init({
-//     server: {
-//       baseDir: './src/',
-//       middleware: function (req, res, next) {
-//         res.setHeader('Access-Control-Allow-Origin', '*');
-//         next();
-//       }
-//     }
-//   });
-
-//   var watchDirs = [
-//     'gulpfile.js',
-//     'src/**/*.css',
-//     'src/**/*.html',
-//     'src/**/*.js',
-//     'src/index.html',
-//     'src/index.js'
-//   ];
-
-//   gulp.watch(watchDirs).on('change', browserSync.reload);
-//   gulp.watch('src/less/*.less', ['less']);
-// });
-
-// gulp.task('icons', function() {
-//   return icons({tasks: icon_config})
-//     .pipe(gulp.dest('./src/img/svgs'));
-// });
-
-// var environment = process.env.NODE_ENV || 'development';
-
-// gulp.task('config', function() {
-//   gulp.src('config.json')
-//     .pipe(gulpNgConfig('app.config', {environment: environment}))
-//     .pipe(gulp.dest('src/lib/'));
-// });
+  // Start a webpack-dev-server
+  new WebpackDevServer(webpack(myConfig), {
+    stats: {
+      colors: true
+    }
+  }).listen(8080, "localhost", function(err) {
+    if(err) throw new gutil.PluginError("webpack-dev-server", err);
+    gutil.log("[webpack-dev-server]", "http://localhost:8080/webpack-dev-server/index.html");
+  });
+});
