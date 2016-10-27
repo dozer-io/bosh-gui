@@ -112,7 +112,7 @@ update action model =
                                                 False
 
                                     ( taskEventOutput, taskEventOutputCmd ) =
-                                        TaskEventOutput.init model.endpoint selectedActivity.activity.id (Debug.log "refresh" refresh)
+                                        TaskEventOutput.init model.endpoint selectedActivity.activity.id refresh
                                 in
                                     ( { model
                                         | activities = activities
