@@ -1,42 +1,32 @@
-module HttpAuth.OAuth exposing (Client, buildAuthUrl, getTokenFromHash, clientRequiresInput, authHeader)
+module HttpAuth.OAuth exposing (OAuthClient, buildAuthUrl, getTokenFromHash, clientRequiresInput, authHeader)
 
 import Http
 import String
 import Dict
 
 
-type alias Client =
+type alias OAuthClient =
     { endpoint : String
     , clientId : String
     , scopes : List String
     , redirectUrl : String
-    , token : Maybe String
+    , token : String
     }
 
 
-clientRequiresInput : Client -> Bool
+clientRequiresInput : OAuthClient -> Bool
 clientRequiresInput client =
-    case client.token of
-        Nothing ->
-            True
-
-        --  TODO: use http://package.elm-lang.org/packages/simonh1000/elm-jwt/2.0.0
-        --  to check if token has expired
-        Just _ ->
-            False
+    --  TODO: use http://package.elm-lang.org/packages/simonh1000/elm-jwt/2.0.0
+    --  to check if token has expired
+    String.isEmpty client.token
 
 
-authHeader : Client -> ( String, String )
-authHeader client =
-    case client.token of
-        Nothing ->
-            ( "", "" )
-
-        Just token ->
-            ( "Authorization", "bearer " ++ token )
+authHeader : OAuthClient -> ( String, String )
+authHeader { token } =
+    ( "Authorization", "bearer " ++ token )
 
 
-buildAuthUrl : Client -> String
+buildAuthUrl : OAuthClient -> String
 buildAuthUrl client =
     Http.url client.endpoint
         [ ( "response_type", "token" )
@@ -48,13 +38,14 @@ buildAuthUrl client =
         ]
 
 
-getTokenFromHash : String -> Maybe String
+getTokenFromHash : String -> String
 getTokenFromHash s =
     let
         params =
             parseUrlParams s
     in
-        Dict.get "access_token" params
+        Maybe.withDefault ""
+            <| Dict.get "access_token" params
 
 
 parseUrlParams : String -> Dict.Dict String String

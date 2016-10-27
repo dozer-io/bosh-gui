@@ -1,4 +1,4 @@
-effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, get, userClientInput, urlParser, updateClient, Client)
+effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, get, userClientInput, urlParser, updateClient, Client(..))
 
 import Http
 import Navigation
@@ -69,7 +69,7 @@ subMap func sub =
 
 
 type Client
-    = OAuthClient OAuth.Client
+    = OAuth OAuth.OAuthClient
 
 
 type alias State msg =
@@ -111,7 +111,7 @@ onEffects router cmds subs state =
 
         clientRequiresInput client =
             case client of
-                OAuthClient client' ->
+                OAuth client' ->
                     OAuth.clientRequiresInput client'
 
         ( cmds', queue ) =
@@ -174,7 +174,7 @@ onSelfMsg router selfMsg state =
 
                 Just client ->
                     case client of
-                        OAuthClient client' ->
+                        OAuth client' ->
                             OAuth.authHeader client'
 
         httpRequest method url =
@@ -217,6 +217,6 @@ onSelfMsg router selfMsg state =
                 askUserInput client `endWith` state
 
 
-urlParser : Navigation.Parser (Maybe String)
+urlParser : Navigation.Parser String
 urlParser =
     Navigation.makeParser (.hash >> OAuth.getTokenFromHash)
