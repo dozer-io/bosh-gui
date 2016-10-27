@@ -117,7 +117,7 @@ onEffects router cmds subs state =
         ( cmds', queue ) =
             case state.client of
                 Nothing ->
-                    ( runCmds nonQueableCmds, state.queue )
+                    ( runCmds nonQueableCmds, state.queue ++ queableCmds )
 
                 Just client ->
                     if clientRequiresInput client then
