@@ -206,67 +206,72 @@ view model =
         directors =
             model.directors |> Maybe.withDefault []
     in
-        Layout.render Mdl
-            model.mdl
-            [ Layout.fixedTabs
-            , Layout.fixedHeader
-            , Layout.selectedTab
-                <| case getAt selected directors of
-                    Nothing ->
-                        -1
+        case HttpAuth.Part.view model.auth of
+            Just view ->
+                App.map AuthMsg view
 
-                    Just director ->
-                        (snd director).tab
-            , Layout.onSelectTab
-                (\id ->
-                    SubMsg selected (Bosh.SelectTab id)
-                )
-            ]
-            { header =
-                [ Layout.row []
-                    [ Layout.title []
-                        [ text
-                            <| case getAt selected directors of
-                                Nothing ->
-                                    ""
+            Nothing ->
+                Layout.render Mdl
+                    model.mdl
+                    [ Layout.fixedTabs
+                    , Layout.fixedHeader
+                    , Layout.selectedTab
+                        <| case getAt selected directors of
+                            Nothing ->
+                                -1
 
-                                Just director ->
-                                    (fst director).name
-                        ]
+                            Just director ->
+                                (snd director).tab
+                    , Layout.onSelectTab
+                        (\id ->
+                            SubMsg selected (Bosh.SelectTab id)
+                        )
                     ]
-                ]
-            , drawer =
-                [ case model.directors of
-                    Nothing ->
-                        div [] [ text "loading" ]
+                    { header =
+                        [ Layout.row []
+                            [ Layout.title []
+                                [ text
+                                    <| case getAt selected directors of
+                                        Nothing ->
+                                            ""
 
-                    Just directors ->
-                        styled ol [ cs "mdl-list" ]
-                            <| List.indexedMap (viewDirectorListItem selected)
-                            <| fst
-                            <| List.unzip directors
-                ]
-            , tabs =
-                case model.selectedDirector of
-                    Nothing ->
-                        ( [], [] )
+                                        Just director ->
+                                            (fst director).name
+                                ]
+                            ]
+                        ]
+                    , drawer =
+                        [ case model.directors of
+                            Nothing ->
+                                div [] [ text "loading" ]
 
-                    Just _ ->
-                        Bosh.tabsView
-            , main =
-                [ case model.directors of
-                    Nothing ->
-                        div [] [ text "loading" ]
-
-                    Just directors ->
+                            Just directors ->
+                                styled ol [ cs "mdl-list" ]
+                                    <| List.indexedMap (viewDirectorListItem selected)
+                                    <| fst
+                                    <| List.unzip directors
+                        ]
+                    , tabs =
                         case model.selectedDirector of
                             Nothing ->
-                                div [] [ text "select a director" ]
+                                ( [], [] )
 
-                            Just id ->
-                                viewBosh id directors
-                ]
-            }
+                            Just _ ->
+                                Bosh.tabsView
+                    , main =
+                        [ case model.directors of
+                            Nothing ->
+                                div [] [ text "loading" ]
+
+                            Just directors ->
+                                case model.selectedDirector of
+                                    Nothing ->
+                                        div [] [ text "select a director" ]
+
+                                    Just id ->
+                                        viewBosh id directors
+                        ]
+                    }
 
 
 viewDirectorListItem : Int -> Int -> Director -> Html Msg

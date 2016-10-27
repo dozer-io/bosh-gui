@@ -19,9 +19,9 @@ urlUpdate token model =
 
 
 -- SUBSCRIPTIONS
--- subscriptions : ((Client -> Msg) -> Client -> a) -> Sub a
 
 
+subscriptions : (Msg -> a) -> Sub a
 subscriptions tagger =
     userClientInput (tagger << UserInput)
 
@@ -38,7 +38,7 @@ type alias Model =
 
 init : Client -> ( Model, Cmd a )
 init client =
-    ( Model client False, Cmd.none )
+    ( Model client False, HttpAuth.updateClient client )
 
 
 
@@ -60,14 +60,15 @@ update msg model =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Maybe (Html Msg)
 view model =
     if model.userInputRequired then
         case model.client of
             OAuth client' ->
-                div []
-                    [ text "Please login"
-                    , a [ href <| buildAuthUrl client' ] [ text "click here" ]
-                    ]
+                Just
+                    <| div []
+                        [ text "Please login"
+                        , a [ href <| buildAuthUrl client' ] [ text "click here" ]
+                        ]
     else
-        div [] []
+        Nothing
