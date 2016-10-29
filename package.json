@@ -1,7 +1,7 @@
 {
-  "name": "dozer-elm",
+  "name": "bosh-gui",
   "version": "1.0.0",
-  "description": "",
+  "description": "The GUI for BOSH",
   "main": "index.hmtl",
   "devDependencies": {
     "autoprefixer": "^6.3.6",
@@ -32,6 +32,6 @@
     "build": "rimraf dist && webpack",
     "watch": "webpack --watch"
   },
-  "author": "Ruben Koster",
-  "license": "ISC"
+  "author": "Dozer.io",
+  "license": "APLv2"
 }
