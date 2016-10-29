@@ -1,9 +1,10 @@
 effect module HttpAuth where { command = MyCmd, subscription = MySub } exposing (send, get, userClientInput, urlParser, updateClient, Client(..))
 
 import Http
-import Navigation
+import HttpAuth.Basic as Basic
 import HttpAuth.OAuth as OAuth
 import HttpAuth.Util exposing (spawnTask, endWith)
+import Navigation
 import Task
 
 
@@ -70,6 +71,7 @@ subMap func sub =
 
 type Client
     = OAuth OAuth.OAuthClient
+    | Basic Basic.HttpBasicClient
 
 
 type alias State msg =
@@ -114,6 +116,9 @@ onEffects router cmds subs state =
             case client of
                 OAuth client' ->
                     OAuth.clientRequiresInput client'
+
+                Basic client' ->
+                    Basic.clientRequiresInput client'
 
         ( cmds', queue ) =
             case state.client of
@@ -177,6 +182,9 @@ onSelfMsg router selfMsg state =
                     case client of
                         OAuth client' ->
                             OAuth.authHeader client'
+
+                        Basic client' ->
+                            Basic.authHeader client'
 
         httpRequest method url =
             Http.Request method [ authHeader ] url Http.empty

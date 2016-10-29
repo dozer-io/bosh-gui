@@ -4,6 +4,14 @@ if (process.env.NODE_ENV != 'production') {
 }
 
 // inject bundled Elm app into div#main
-var Elm = require( './Bosh' );
+var Elm = require( './Main' );
 
-Elm.Bosh.fullscreen();
+if (process.env.NODE_ENV == 'production') {
+  Elm.Main.fullscreen({
+    target : "https://localhost:25555"
+  });
+} else {
+  Elm.Main.fullscreen({
+    target : "http://localhost:8001/bosh/00000000-0000-0000-0000-000000000000"
+  });
+}

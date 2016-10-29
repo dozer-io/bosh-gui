@@ -6,6 +6,7 @@ import Html.App as App
 import TimeTravel.Html.App as TimeTravel
 import Material.Layout as Layout
 import Material.Options as Options
+import Material.Color as Color
 import Material
 import Deployments
 import Stemcells

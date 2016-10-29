@@ -21,7 +21,8 @@
         "evancz/elm-http": "3.0.1 <= v < 4.0.0",
         "jinjor/elm-time-travel": "1.0.13 <= v < 2.0.0",
         "rogeriochaves/elm-test-bdd-style": "4.0.0 <= v < 5.0.0",
-        "sporto/erl": "10.0.0 <= v < 11.0.0"
+        "sporto/erl": "10.0.0 <= v < 11.0.0",
+        "truqu/elm-base64": "1.0.4 <= v < 2.0.0"
     },
     "elm-version": "0.17.0 <= v < 0.18.0"
 }
