@@ -76,12 +76,13 @@ type alias State msg =
     { queue : List (MyCmd msg)
     , subs : List (MySub msg)
     , client : Maybe Client
+    , waitingForClientUpdate : Bool
     }
 
 
 init : Task.Task Never (State msg)
 init =
-    Task.succeed <| State [] [] Nothing
+    Task.succeed <| State [] [] Nothing False
 
 
 onEffects :
@@ -120,7 +121,7 @@ onEffects router cmds subs state =
                     ( runCmds nonQueableCmds, state.queue ++ queableCmds )
 
                 Just client ->
-                    if clientRequiresInput client then
+                    if clientRequiresInput client && not state.waitingForClientUpdate then
                         ( [ toSelf <| AskUserInput client ]
                             ++ (runCmds nonQueableCmds)
                         , state.queue ++ queableCmds
@@ -211,10 +212,18 @@ onSelfMsg router selfMsg state =
                             `endWith` state
 
                     UpdateClient client ->
-                        Task.succeed { state | client = Just client }
+                        let
+                            queuedTasks =
+                                Task.sequence <| List.map (toSelf << RunCmd) state.queue
+                        in
+                            queuedTasks
+                                `endWith` { state
+                                            | client = Just client
+                                            , waitingForClientUpdate = False
+                                          }
 
             AskUserInput client ->
-                askUserInput client `endWith` state
+                askUserInput client `endWith` { state | waitingForClientUpdate = True }
 
 
 urlParser : Navigation.Parser String
