@@ -33,5 +33,5 @@
     "watch": "webpack --watch"
   },
   "author": "Dozer.io",
-  "license": "APLv2"
+  "license": "Apache-2.0"
 }
