@@ -3,17 +3,16 @@
     <head>
         <meta charSet="utf-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Dozer Console (Beta)</title>
-        <meta name="description" content="Bosh UI"/>
-        <meta name="author" content="Dozer Cloud"/>
+        <title>Bosh GUI</title>
+        <meta name="description" content="Bosh GUI"/>
+        <meta name="author" content="Dozer.io"/>
         <link rel="shortcut icon" type="image/png" href="./favicon.ico"/>
 
         <link href='https://fonts.googleapis.com/css?family=Roboto:400,300,500|Roboto+Mono|Roboto+Condensed:400,700&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-        <link rel="stylesheet" href="https://code.getmdl.io/1.1.3/material.blue-amber.min.css" />
-        <link href="data:image/png;base64,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" rel="shortcut icon" />
+        <link rel="stylesheet" href="https://code.getmdl.io/1.2.1/material.blue_grey-orange.min.css" />
     </head>
     <body>
         <div id="main"></div>
-    <script type="text/javascript" src="193d2d6f4938fd4576e7.js"></script></body>
+    <script type="text/javascript" src="c9f6f9e1e3325b3cb6f4.js"></script></body>
 </html>
