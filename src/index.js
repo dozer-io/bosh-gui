@@ -8,7 +8,7 @@ var Elm = require( './Main' );
 
 if (process.env.NODE_ENV == 'production') {
   Elm.Main.fullscreen({
-    target : "https://localhost:25555"
+    target : "/bosh"
   });
 } else {
   Elm.Main.fullscreen({
