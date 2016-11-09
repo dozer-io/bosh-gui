@@ -111,14 +111,6 @@ onEffects router cmds subs state =
         toSelf =
             Platform.sendToSelf router
 
-        clientRequiresInput client =
-            case client of
-                OAuth client' ->
-                    OAuth.clientRequiresInput client'
-
-                Basic client' ->
-                    Basic.clientRequiresInput client'
-
         ( cmds', queue ) =
             case state.client of
                 Nothing ->
@@ -220,14 +212,13 @@ onSelfMsg router selfMsg state =
 
                     UpdateClient client ->
                         let
-                            queuedTasks =
-                                Task.sequence <| List.map (toSelf << RunCmd) state.queue
+                            tasks =
+                                if clientRequiresInput client then
+                                    [ toSelf <| AskUserInput client ]
+                                else
+                                    List.map (toSelf << RunCmd) state.queue
                         in
-                            queuedTasks
-                                `endWith` { state
-                                            | client = Just client
-                                            , waitingForClientUpdate = False
-                                          }
+                            Task.sequence tasks `endWith` { state | client = Just client }
 
             AskUserInput client ->
                 askUserInput client `endWith` { state | client = Nothing }
@@ -236,3 +227,13 @@ onSelfMsg router selfMsg state =
 urlParser : Navigation.Parser String
 urlParser =
     Navigation.makeParser (.hash >> OAuth.getTokenFromHash)
+
+
+clientRequiresInput : Client -> Bool
+clientRequiresInput client =
+    case client of
+        OAuth client' ->
+            OAuth.clientRequiresInput client'
+
+        Basic client' ->
+            Basic.clientRequiresInput client'
