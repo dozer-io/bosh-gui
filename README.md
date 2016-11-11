@@ -34,3 +34,4 @@ npm start
 ```
 
 Last open your browser: [http://localhost:8080](http://localhost:8080)
+The `username` and `password` are ignored by the BOSH API stub so can be left blank.
