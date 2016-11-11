@@ -31,8 +31,8 @@
     },
     "scripts": {
         "start": "gulp serve",
+        "postinstall": "elm-package install",
         "build": "rimraf dist && webpack",
-        "watch": "webpack --watch",
         "update": "ncu -u"
     },
     "author": "Dozer.io",
