@@ -32,3 +32,5 @@ Once the dependencies are installed we can start [webpack](https://webpack.githu
 ```
 npm start
 ```
+
+Last open your browser: [http://localhost:8080](http://localhost:8080)
